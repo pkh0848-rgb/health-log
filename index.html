@@ -177,7 +177,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <button class="add-ex-btn" id="addExBtn">＋ 운동 추가</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.1 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.2 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
 
 <!-- 운동 추가 모달 -->
 <div class="modal-bg" id="addBg">
@@ -335,7 +335,7 @@ function attachMonthLogs(){
 function bootRoom(rid){
   ROOM_ID=rid; localStorage.setItem('hl_room',rid); showGate(false); showHub(false);
   rRef('meta').once('value').then(function(s){ ROOM_META=s.val()||{}; el('roomTitle').textContent=ROOM_META.name||'운동방'; });
-  rRef('members').on('value',function(s){ MEMBERS=s.val()||{}; PS=Object.keys(MEMBERS); el('ov').style.display='none'; renderMembers(); renderDay(); });
+  rRef('members').on('value',function(s){ MEMBERS=s.val()||{}; el('ov').style.display='none'; if(!MEMBERS[MYUID]){ localStorage.removeItem('hl_room'); ROOM_ID=null; loadMyRooms(); showHub(true); return; } PS=Object.keys(MEMBERS); renderMembers(); renderDay(); });
   rRef('exLib').on('value',function(s){ EXLIB=s.val()||{}; });
   attachMonthLogs(); startNotifListener();
 }
