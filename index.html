@@ -177,7 +177,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <button class="add-ex-btn" id="addExBtn">＋ 운동 추가</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.3 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.4 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
 
 <!-- 운동 추가 모달 -->
 <div class="modal-bg" id="addBg">
@@ -369,7 +369,7 @@ function cell(y,m,d,om){
 
 /* ===== 하루 운동 로깅 ===== */
 var _rdTimer=null;
-function scheduleRenderDay(){ var ae=document.activeElement; if(ae&&ae.tagName==='INPUT'&&el('dpList')&&el('dpList').contains(ae)){ clearTimeout(_rdTimer); _rdTimer=setTimeout(scheduleRenderDay,350); return; } renderDay(); }
+function scheduleRenderDay(){ clearTimeout(_rdTimer); _rdTimer=setTimeout(function(){ var ae=document.activeElement; if(ae&&ae.tagName==='INPUT'&&el('dpList')&&el('dpList').contains(ae)){ scheduleRenderDay(); return; } renderDay(); },250); }
 function renderDay(){
   el('dpTitle').textContent=(selDay===todayK()?'오늘':(+selDay.slice(5,7))+'/'+(+selDay.slice(8,10)))+' 운동';
   el('dpWho').textContent=(MEMBERS[MYUID])?('내 기록 · '+esc(MEMBERS[MYUID].name)):'';
