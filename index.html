@@ -177,7 +177,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <button class="add-ex-btn" id="addExBtn">＋ 운동 추가</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.5 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.6 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
 
 <!-- 운동 추가 모달 -->
 <div class="modal-bg" id="addBg">
@@ -386,13 +386,13 @@ function exRow(date,eid,e){
   var div=document.createElement('div'); div.className='ex-row'+(e.done?' done':''); div.dataset.eid=eid;
   var mh='';
   if(e.type==='cardio'){ var spd=(e.dist&&e.min)?(e.dist/(e.min/60)).toFixed(1):null;
-    mh='<input class="mini-inp" type="number" step="0.1" value="'+(e.dist!=null?e.dist:'')+'" placeholder="0" onchange="setMetric(\''+date+'\',\''+eid+'\',\'dist\',this.value)"><span class="mini-unit">km</span>'
-      +'<input class="mini-inp" type="number" value="'+(e.min!=null?e.min:'')+'" placeholder="0" onchange="setMetric(\''+date+'\',\''+eid+'\',\'min\',this.value)"><span class="mini-unit">분</span>'
+    mh='<input class="mini-inp" type="number" step="0.1" value="'+(e.dist!=null?e.dist:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'dist\',this.value)"><span class="mini-unit">km</span>'
+      +'<input class="mini-inp" type="number" value="'+(e.min!=null?e.min:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'min\',this.value)"><span class="mini-unit">분</span>'
       +'<span class="ex-calc">'+(spd?('⚡ '+spd+' km/h'):'')+'</span>';
   } else {
-    mh='<input class="mini-inp" type="number" step="0.5" value="'+(e.weight!=null?e.weight:'')+'" placeholder="0" onchange="setMetric(\''+date+'\',\''+eid+'\',\'weight\',this.value)"><span class="mini-unit">kg</span>'
-      +'<input class="mini-inp" type="number" value="'+(e.reps!=null?e.reps:'')+'" placeholder="0" onchange="setMetric(\''+date+'\',\''+eid+'\',\'reps\',this.value)"><span class="mini-unit">회</span>'
-      +'<input class="mini-inp" type="number" value="'+(e.sets!=null?e.sets:'')+'" placeholder="0" onchange="setMetric(\''+date+'\',\''+eid+'\',\'sets\',this.value)"><span class="mini-unit">세트</span>';
+    mh='<input class="mini-inp" type="number" step="0.5" value="'+(e.weight!=null?e.weight:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'weight\',this.value)"><span class="mini-unit">kg</span>'
+      +'<input class="mini-inp" type="number" value="'+(e.reps!=null?e.reps:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'reps\',this.value)"><span class="mini-unit">회</span>'
+      +'<input class="mini-inp" type="number" value="'+(e.sets!=null?e.sets:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'sets\',this.value)"><span class="mini-unit">세트</span>';
   }
   div.innerHTML='<button class="ckb'+(e.done?' on':'')+'" onclick="toggleDone(\''+date+'\',\''+eid+'\')">✓</button>'
     +'<div class="ex-body"><div class="ex-name">'+(e.emoji?e.emoji+' ':'')+esc(e.name)+' <span class="mini-unit">'+(e.type==='cardio'?'🏃':'🏋️')+'</span></div><div class="ex-metrics">'+mh+'</div></div>'
