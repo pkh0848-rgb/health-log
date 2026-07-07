@@ -177,7 +177,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <button class="add-ex-btn" id="addExBtn">＋ 운동 추가</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.2 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.3 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
 
 <!-- 운동 추가 모달 -->
 <div class="modal-bg" id="addBg">
@@ -330,7 +330,7 @@ var _logRef=null,_logCb=null;
 function attachMonthLogs(){
   if(_logRef&&_logCb)_logRef.off('value',_logCb);
   var pre=CY+'-'+pad(CM+1); _logRef=rRef('logs').orderByKey().startAt(pre+'-01').endAt(pre+'-31');
-  _logCb=_logRef.on('value',function(s){ MONTHLOGS={}; s.forEach(function(c){MONTHLOGS[c.key]=c.val();}); renderCal(); renderMembers(); renderDay(); });
+  _logCb=_logRef.on('value',function(s){ MONTHLOGS={}; s.forEach(function(c){MONTHLOGS[c.key]=c.val();}); renderCal(); renderMembers(); scheduleRenderDay(); });
 }
 function bootRoom(rid){
   ROOM_ID=rid; localStorage.setItem('hl_room',rid); showGate(false); showHub(false);
@@ -368,6 +368,8 @@ function cell(y,m,d,om){
 }
 
 /* ===== 하루 운동 로깅 ===== */
+var _rdTimer=null;
+function scheduleRenderDay(){ var ae=document.activeElement; if(ae&&ae.tagName==='INPUT'&&el('dpList')&&el('dpList').contains(ae)){ clearTimeout(_rdTimer); _rdTimer=setTimeout(scheduleRenderDay,350); return; } renderDay(); }
 function renderDay(){
   el('dpTitle').textContent=(selDay===todayK()?'오늘':(+selDay.slice(5,7))+'/'+(+selDay.slice(8,10)))+' 운동';
   el('dpWho').textContent=(MEMBERS[MYUID])?('내 기록 · '+esc(MEMBERS[MYUID].name)):'';
