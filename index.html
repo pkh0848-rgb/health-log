@@ -177,7 +177,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <button class="add-ex-btn" id="addExBtn">＋ 운동 추가</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.7 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.8 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
 
 <!-- 운동 추가 모달 -->
 <div class="modal-bg" id="addBg">
@@ -287,6 +287,30 @@ function relTime(ts){var s=Math.floor((Date.now()-ts)/1000);if(s<60)return '방�
 
 /* ===== 상태 ===== */
 var auth=firebase.auth();
+
+/* ===== 인앱 브라우저(카톡 등)에서 구글 로그인 차단 우회 ===== */
+(function(){
+  var ua=navigator.userAgent||'';
+  var isKakao=/KAKAOTALK/i.test(ua);
+  var isInApp=isKakao||/FBAN|FBAV|FB_IAB|Instagram|Line\/|NAVER|DaumApps|everytimeApp/i.test(ua);
+  if(!isInApp) return;
+  var target=location.href;
+  if(isKakao){ try{ location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(target); }catch(e){} }
+  else if(/Android/i.test(ua)){ try{ var ns=target.replace(/^https?:\/\//,''); location.href='intent://'+ns+'#Intent;scheme=https;package=com.android.chrome;end'; }catch(e){} }
+  var build=function(){
+    if(document.getElementById('_iabGuide'))return;
+    var d=document.createElement('div'); d.id='_iabGuide';
+    d.style.cssText='position:fixed;inset:0;z-index:99999;background:#0a0f1c;color:#e8eefc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;font-family:system-ui,-apple-system,sans-serif';
+    d.innerHTML='<div style="font-size:2.4rem;margin-bottom:12px">🌐</div>'
+      +'<div style="font-size:1.15rem;font-weight:800;margin-bottom:12px;line-height:1.5">앱 내부 브라우저에서는<br>구글 로그인이 막혀 있어요</div>'
+      +'<div style="font-size:.95rem;color:#9fb2d4;line-height:1.7;margin-bottom:22px">아래 버튼을 누르거나,<br>우측 하단 <b>⋮ 메뉴 → 다른 브라우저로 열기</b><br>를 눌러 크롬/사파리에서 열어주세요 🙏</div>'
+      +'<button id="_openExt" style="padding:14px 26px;border:none;border-radius:12px;background:#c6ff3a;color:#0a0f1c;font-size:1rem;font-weight:800">📲 외부 브라우저로 열기</button>'
+      +'<div style="margin-top:16px;font-size:.8rem;color:#6b7a99">안 열리면 주소창의 링크를 복사해<br>크롬에 붙여넣어도 돼요</div>';
+    document.body.appendChild(d);
+    var b=document.getElementById('_openExt'); if(b)b.onclick=function(){ if(isKakao)location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(target); else location.href=target; };
+  };
+  if(document.body)build(); else document.addEventListener('DOMContentLoaded',build);
+})();
 var MYUID=null,ROOM_ID=null,ROOM_META={},MEMBERS={},EXLIB={},MONTHLOGS={},NOTIFS=[];
 var NOTIF_LAST=+(localStorage.getItem('hl_notifLast')||0);
 var CY=new Date().getFullYear(),CM=new Date().getMonth(),selDay=todayK();
