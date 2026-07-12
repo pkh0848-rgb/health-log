@@ -123,6 +123,8 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
 .bar-val{font-size:.6rem;color:var(--accent);font-weight:700}
 .ex-prog{margin-bottom:10px}
 .ex-prog .epn{font-weight:700;font-size:.86rem;margin-bottom:4px}
+.ro-m{font-weight:700;font-size:.92rem;color:var(--txt);margin-right:12px}
+.mcard.sel{transform:translateY(-1px)}
 </style>
 </head>
 <body>
@@ -177,7 +179,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <button class="add-ex-btn" id="addExBtn">＋ 운동 추가</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.8 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v0.9 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
 
 <!-- 운동 추가 모달 -->
 <div class="modal-bg" id="addBg">
@@ -315,6 +317,7 @@ var MYUID=null,ROOM_ID=null,ROOM_META={},MEMBERS={},EXLIB={},MONTHLOGS={},NOTIFS
 var NOTIF_LAST=+(localStorage.getItem('hl_notifLast')||0);
 var CY=new Date().getFullYear(),CM=new Date().getMonth(),selDay=todayK();
 var PS=[];
+var VIEW_UID=null;
 function rRef(sub){return db.ref('rooms/'+ROOM_ID+(sub?'/'+sub:''));}
 function showGate(s){var g=el('loginGate');if(g)g.style.display=s?'flex':'none';}
 function showHub(s){var h=el('roomHub');if(h)h.style.display=s?'flex':'none';}
@@ -372,7 +375,7 @@ function attachMonthLogs(){
   _logCb=_logRef.on('value',function(s){ MONTHLOGS={}; s.forEach(function(c){MONTHLOGS[c.key]=c.val();}); renderCal(); renderMembers(); scheduleRenderDay(); });
 }
 function bootRoom(rid){
-  ROOM_ID=rid; localStorage.setItem('hl_room',rid); showGate(false); showHub(false);
+  ROOM_ID=rid; VIEW_UID=MYUID; localStorage.setItem('hl_room',rid); showGate(false); showHub(false);
   rRef('meta').once('value').then(function(s){ ROOM_META=s.val()||{}; el('roomTitle').textContent=ROOM_META.name||'운동방'; });
   rRef('members').on('value',function(s){ MEMBERS=s.val()||{}; el('ov').style.display='none'; if(!MEMBERS[MYUID]){ localStorage.removeItem('hl_room'); ROOM_ID=null; loadMyRooms(); showHub(true); return; } PS=Object.keys(MEMBERS); renderMembers(); renderDay(); });
   rRef('exLib').on('value',function(s){ EXLIB=s.val()||{}; });
@@ -384,8 +387,10 @@ function renderMembers(){
   var box=el('members'); if(!box)return; box.innerHTML='';
   PS.forEach(function(k){ var m=MEMBERS[k]||{}; var av=AVATARS[m.avatar]||AVATARS.lift;
     var dl=((MONTHLOGS[selDay]||{})[k])||{}; var ids=Object.keys(dl); var total=ids.length, done=0; ids.forEach(function(e){if(dl[e].done)done++;});
-    var d=document.createElement('div'); d.className='mcard'; d.style.borderColor=done>0?av.c:'var(--line)';
+    var sel=(k===(VIEW_UID||MYUID));
+    var d=document.createElement('div'); d.className='mcard'+(sel?' sel':''); d.style.borderColor=sel?av.c:(done>0?av.c:'var(--line)'); d.style.boxShadow=sel?('0 0 0 2px '+av.c+'66'):'none';
     d.innerHTML=(m.uid===MYUID?'<div class="me-badge">나</div>':'')+'<div class="ava" style="background:'+av.c+'22">'+av.e+'</div><span class="cn" style="color:'+av.c+'">'+esc(m.name||'')+'</span><span class="cnt">'+(total?done+'/'+total+' 완료':'기록 없음')+'</span>';
+    d.onclick=function(){ VIEW_UID=k; renderMembers(); renderDay(); };
     box.appendChild(d);
   });
 }
@@ -411,31 +416,43 @@ var _rdTimer=null;
 function scheduleRenderDay(){ renderDay(); }
 var _lastDaySig=null;
 function renderDay(){
+  if(!VIEW_UID||!MEMBERS[VIEW_UID])VIEW_UID=MYUID;
+  var isMe=(VIEW_UID===MYUID);
   el('dpTitle').textContent=(selDay===todayK()?'오늘':(+selDay.slice(5,7))+'/'+(+selDay.slice(8,10)))+' 운동';
-  el('dpWho').textContent=(MEMBERS[MYUID])?('내 기록 · '+esc(MEMBERS[MYUID].name)):'';
+  var vn=esc((MEMBERS[VIEW_UID]||{}).name||'');
+  el('dpWho').textContent=isMe?('내 기록 · '+vn):(vn+'님의 기록');
+  var ab=el('addExBtn'); if(ab)ab.style.display=isMe?'':'none';
   var box=el('dpList'); if(!box)return;
-  var mine=((MONTHLOGS[selDay]||{})[MYUID])||{}; var ids=Object.keys(mine);
-  var sig=selDay+'|'+ids.map(function(id){var e=mine[id]||{};return id+':'+(e.done?1:0)+':'+(e.type||'')+':'+(e.name||'')+':'+(e.emoji||'');}).join(',');
+  var mine=((MONTHLOGS[selDay]||{})[VIEW_UID])||{}; var ids=Object.keys(mine);
+  var sig=VIEW_UID+'|'+selDay+'|'+isMe+'|'+ids.map(function(id){var e=mine[id]||{};var b=id+':'+(e.done?1:0)+':'+(e.type||'')+':'+(e.name||'')+':'+(e.emoji||''); if(!isMe)b+=':'+(e.weight||'')+':'+(e.reps||'')+':'+(e.sets||'')+':'+(e.dist||'')+':'+(e.min||''); return b;}).join(',');
   if(sig===_lastDaySig && box.childElementCount){ return; }
   _lastDaySig=sig; box.innerHTML='';
-  if(!ids.length){ box.innerHTML='<div class="empty-row">아직 기록이 없어요.<br>아래 ＋운동 추가로 시작해요! 💪</div>'; return; }
-  ids.forEach(function(eid){ box.appendChild(exRow(selDay,eid,mine[eid])); });
+  if(!ids.length){ box.innerHTML='<div class="empty-row">'+(isMe?'아직 기록이 없어요.<br>아래 ＋운동 추가로 시작해요! 💪':(vn+'님은 이 날 운동 기록이 없어요 💤'))+'</div>'; return; }
+  ids.forEach(function(eid){ box.appendChild(exRow(selDay,eid,mine[eid],isMe)); });
 }
-function exRow(date,eid,e){
+function exRow(date,eid,e,editable){
   var div=document.createElement('div'); div.className='ex-row'+(e.done?' done':''); div.dataset.eid=eid;
   var mh='';
   if(e.type==='cardio'){ var spd=(e.dist&&e.min)?(e.dist/(e.min/60)).toFixed(1):null;
-    mh='<input class="mini-inp" type="number" step="0.1" value="'+(e.dist!=null?e.dist:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'dist\',this.value)"><span class="mini-unit">km</span>'
-      +'<input class="mini-inp" type="number" value="'+(e.min!=null?e.min:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'min\',this.value)"><span class="mini-unit">분</span>'
-      +'<span class="ex-calc">'+(spd?('⚡ '+spd+' km/h'):'')+'</span>';
+    if(editable){
+      mh='<input class="mini-inp" type="number" step="0.1" value="'+(e.dist!=null?e.dist:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'dist\',this.value)"><span class="mini-unit">km</span>'
+        +'<input class="mini-inp" type="number" value="'+(e.min!=null?e.min:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'min\',this.value)"><span class="mini-unit">분</span>'
+        +'<span class="ex-calc">'+(spd?('⚡ '+spd+' km/h'):'')+'</span>';
+    } else {
+      mh='<span class="ro-m">'+(e.dist!=null?e.dist:'-')+' <span class="mini-unit">km</span></span><span class="ro-m">'+(e.min!=null?e.min:'-')+' <span class="mini-unit">분</span></span>'+(spd?'<span class="ex-calc">⚡ '+spd+' km/h</span>':'');
+    }
   } else {
-    mh='<input class="mini-inp" type="number" step="0.5" value="'+(e.weight!=null?e.weight:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'weight\',this.value)"><span class="mini-unit">kg</span>'
-      +'<input class="mini-inp" type="number" value="'+(e.reps!=null?e.reps:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'reps\',this.value)"><span class="mini-unit">회</span>'
-      +'<input class="mini-inp" type="number" value="'+(e.sets!=null?e.sets:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'sets\',this.value)"><span class="mini-unit">세트</span>';
+    if(editable){
+      mh='<input class="mini-inp" type="number" step="0.5" value="'+(e.weight!=null?e.weight:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'weight\',this.value)"><span class="mini-unit">kg</span>'
+        +'<input class="mini-inp" type="number" value="'+(e.reps!=null?e.reps:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'reps\',this.value)"><span class="mini-unit">회</span>'
+        +'<input class="mini-inp" type="number" value="'+(e.sets!=null?e.sets:'')+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\'sets\',this.value)"><span class="mini-unit">세트</span>';
+    } else {
+      mh='<span class="ro-m">'+(e.weight!=null?e.weight:'-')+' <span class="mini-unit">kg</span></span><span class="ro-m">'+(e.reps!=null?e.reps:'-')+' <span class="mini-unit">회</span></span><span class="ro-m">'+(e.sets!=null?e.sets:'-')+' <span class="mini-unit">세트</span></span>';
+    }
   }
-  div.innerHTML='<button class="ckb'+(e.done?' on':'')+'" onclick="toggleDone(\''+date+'\',\''+eid+'\')">✓</button>'
-    +'<div class="ex-body"><div class="ex-name">'+(e.emoji?e.emoji+' ':'')+esc(e.name)+' <span class="mini-unit">'+(e.type==='cardio'?'🏃':'🏋️')+'</span></div><div class="ex-metrics">'+mh+'</div></div>'
-    +'<button class="del-x" onclick="delEntry(\''+date+'\',\''+eid+'\')">×</button>';
+  var ck=editable?('<button class="ckb'+(e.done?' on':'')+'" onclick="toggleDone(\''+date+'\',\''+eid+'\')">✓</button>'):('<div class="ckb'+(e.done?' on':'')+'" style="cursor:default">'+(e.done?'✓':'')+'</div>');
+  var dl=editable?('<button class="del-x" onclick="delEntry(\''+date+'\',\''+eid+'\')">×</button>'):'';
+  div.innerHTML=ck+'<div class="ex-body"><div class="ex-name">'+(e.emoji?e.emoji+' ':'')+esc(e.name)+' <span class="mini-unit">'+(e.type==='cardio'?'🏃':'🏋️')+'</span></div><div class="ex-metrics">'+mh+'</div></div>'+dl;
   return div;
 }
 function setMetric(date,eid,field,val){ var v=parseFloat(val); if(isNaN(v))v=null; rRef('logs/'+date+'/'+MYUID+'/'+eid+'/'+field).set(v); if(field==='dist'||field==='min'){ var row=document.querySelector('#dpList .ex-row[data-eid="'+eid+'"]'); if(row){ var ins=row.querySelectorAll('.mini-inp'); var d=parseFloat(ins[0].value), m=parseFloat(ins[1].value); var c=row.querySelector('.ex-calc'); if(c)c.textContent=(d&&m)?('⚡ '+(d/(m/60)).toFixed(1)+' km/h'):''; } } }
