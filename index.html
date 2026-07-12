@@ -169,6 +169,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
   <div class="toolbar">
     <button class="tbtn" onclick="showSummary()">📈 성장 요약</button>
     <button class="tbtn" id="exLibBtn" onclick="openExLib()">📚 운동 목록</button>
+    <button class="tbtn" onclick="openInbody()">📋 인바디</button>
   </div>
   <div class="cal-wrap">
     <div class="cal-hdr"><button class="nav-btn" id="prevM">◀</button><h2 id="mlabel"></h2><button class="nav-btn" id="nextM">▶</button></div>
@@ -181,7 +182,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <button class="add-ex-btn" id="addExBtn">＋ 운동 추가</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v1.0 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v1.1 · 2026.07.08</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
 
 <!-- 운동 추가 모달 -->
 <div class="modal-bg" id="addBg">
@@ -272,6 +273,28 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <h3 id="sumTitle">📈 성장 요약</h3>
     <div class="sum-people" id="sumPeople"></div>
     <div id="sumBody"></div>
+  </div>
+</div>
+
+<!-- 인바디 모달 -->
+<div class="modal-bg" id="inbodyBg">
+  <div class="modal" style="max-width:460px">
+    <div style="cursor:pointer;font-size:.82rem;color:var(--accent);margin-bottom:10px" onclick="document.getElementById('inbodyBg').classList.remove('show')">← 닫기</div>
+    <h3>📋 인바디 기록</h3>
+    <p class="modal-sub">체중·골격근량·체지방률을 기록하고 변화 추이를 봐요</p>
+    <div class="sum-people" id="inbPeople"></div>
+    <div id="inbForm">
+      <div class="f-label">＋ 인바디 입력</div>
+      <input class="f-inp" type="date" id="inbDate" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1"><div class="f-label" style="margin:0 0 4px">체중</div><input class="f-inp" type="number" step="0.1" id="inbWeight" placeholder="kg" style="padding:9px 10px"/></div>
+        <div style="flex:1"><div class="f-label" style="margin:0 0 4px">골격근량</div><input class="f-inp" type="number" step="0.1" id="inbSmm" placeholder="kg" style="padding:9px 10px"/></div>
+        <div style="flex:1"><div class="f-label" style="margin:0 0 4px">체지방률</div><input class="f-inp" type="number" step="0.1" id="inbFat" placeholder="%" style="padding:9px 10px"/></div>
+      </div>
+      <button class="mbtn mok" style="margin-top:10px;width:100%" onclick="saveInbody()">저장</button>
+    </div>
+    <div id="inbBody" style="margin-top:14px"></div>
+    <div class="mfooter"><button class="mbtn mno" onclick="document.getElementById('inbodyBg').classList.remove('show')">닫기</button></div>
   </div>
 </div>
 
@@ -501,6 +524,41 @@ function openExLib(){ var box=el('exLibList'); box.innerHTML=''; var ks=Object.k
 function delEx(id){ if(!confirm('운동 목록에서 삭제할까요? (기존 기록은 남아요)'))return; rRef('exLib/'+id).remove(); setTimeout(openExLib,200); }
 
 /* ===== 요약/성장 ===== */
+/* ===== 인바디 ===== */
+var INB_PERSON=null, INBDATA=null;
+var INB_METRICS=[{k:'weight',label:'체중',unit:'kg',color:'#a3e635',good:'flat'},{k:'smm',label:'골격근량',unit:'kg',color:'#22d3ee',good:'up'},{k:'fat',label:'체지방률',unit:'%',color:'#fb923c',good:'down'}];
+function openInbody(){ if(!MEMBERS[MYUID]){alert('잠시 후 다시 시도해주세요');return;} el('inbodyBg').classList.add('show'); INB_PERSON=MYUID; if(el('inbDate'))el('inbDate').value=todayK(); renderInbPeople(); loadInbody(); }
+function renderInbPeople(){ var box=el('inbPeople'); if(!box)return; box.innerHTML=''; PS.forEach(function(k){ var m=MEMBERS[k]||{}; var av=AVATARS[m.avatar]||AVATARS.lift; var c=document.createElement('div'); c.className='sp-chip'+(INB_PERSON===k?' on':''); c.style.color=INB_PERSON===k?av.c:'var(--txt)'; c.innerHTML='<span>'+av.e+'</span>'+esc(m.name||''); c.onclick=function(){INB_PERSON=k;renderInbPeople();renderInbody();}; box.appendChild(c); }); }
+function loadInbody(){ el('inbBody').innerHTML='<div class="empty-row">불러오는 중…</div>'; rRef('inbody').once('value').then(function(s){ INBDATA=s.val()||{}; renderInbody(); }); }
+function prefillInb(){ var mine=(INBDATA||{})[MYUID]||{}; var r=mine[(el('inbDate').value)||'']; el('inbWeight').value=(r&&r.weight!=null)?r.weight:''; el('inbSmm').value=(r&&r.smm!=null)?r.smm:''; el('inbFat').value=(r&&r.fat!=null)?r.fat:''; }
+function saveInbody(){ var date=(el('inbDate').value)||todayK(); var w=parseFloat(el('inbWeight').value), sm=parseFloat(el('inbSmm').value), fat=parseFloat(el('inbFat').value); if(isNaN(w)&&isNaN(sm)&&isNaN(fat)){alert('값을 하나 이상 입력하세요');return;} var rec={date:date,ts:Date.now()}; if(!isNaN(w))rec.weight=w; if(!isNaN(sm))rec.smm=sm; if(!isNaN(fat))rec.fat=fat; rRef('inbody/'+MYUID+'/'+date).set(rec).then(function(){ loadInbody(); }); }
+function delInbody(date){ if(!confirm(date+' 인바디 기록을 삭제할까요?'))return; rRef('inbody/'+MYUID+'/'+date).remove().then(loadInbody); }
+function lineChart(pts,color){
+  if(!pts.length)return ''; var W=600,H=130,pad=16;
+  var ys=pts.map(function(p){return p.y;}); var mn=Math.min.apply(null,ys),mx=Math.max.apply(null,ys); if(mx===mn){mx=mn+1;mn=mn-1;}
+  var n=pts.length; function X(i){return n===1?W/2:(pad+i*(W-2*pad)/(n-1));} function Y(v){return H-pad-(v-mn)/(mx-mn)*(H-2*pad);}
+  var line=pts.map(function(p,i){return (i?'L':'M')+X(i).toFixed(1)+' '+Y(p.y).toFixed(1);}).join(' ');
+  var area='M'+X(0).toFixed(1)+' '+(H-pad)+' '+pts.map(function(p,i){return 'L'+X(i).toFixed(1)+' '+Y(p.y).toFixed(1);}).join(' ')+' L'+X(n-1).toFixed(1)+' '+(H-pad)+' Z';
+  var dots=pts.map(function(p,i){return '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="'+(i===n-1?4.5:3)+'" fill="'+(i===n-1?color:'#0a0f1c')+'" stroke="'+color+'" stroke-width="2"/>';}).join('');
+  var labels=pts.map(function(p,i){ if(n>6 && i%Math.ceil(n/6)!==0 && i!==n-1)return ''; return '<text x="'+X(i).toFixed(1)+'" y="'+(H-2)+'" fill="#6b7a99" font-size="11" text-anchor="middle">'+p.d.slice(5)+'</text>'; }).join('');
+  var gid='g'+Math.random().toString(36).slice(2,7);
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;margin-top:4px"><defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+color+'" stop-opacity="0.3"/><stop offset="1" stop-color="'+color+'" stop-opacity="0"/></linearGradient></defs><path d="'+area+'" fill="url(#'+gid+')"/><path d="'+line+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+dots+labels+'</svg>';
+}
+function renderInbody(){
+  if(!INBDATA)return; var isMe=(INB_PERSON===MYUID); if(el('inbForm'))el('inbForm').style.display=isMe?'':'none'; if(isMe)prefillInb();
+  var mine=INBDATA[INB_PERSON]||{}; var dates=Object.keys(mine).sort(); var body=el('inbBody');
+  if(!dates.length){ body.innerHTML='<div class="empty-row">'+(isMe?'아직 인바디 기록이 없어요.<br>위에 입력해서 시작해요 📋':(esc((MEMBERS[INB_PERSON]||{}).name||'')+'님은 인바디 기록이 없어요'))+'</div>'; return; }
+  var recs=dates.map(function(d){return mine[d];}); var h='';
+  INB_METRICS.forEach(function(mt){
+    var pts=recs.filter(function(r){return r[mt.k]!=null;}).map(function(r){return {d:r.date,y:+r[mt.k]};});
+    if(!pts.length)return; var last=pts[pts.length-1].y, prev=pts.length>1?pts[pts.length-2].y:null; var dh='';
+    if(prev!=null){ var dl=last-prev; if(Math.abs(dl)>0.0001){ var up=dl>0; var col='var(--sub)'; if(mt.good!=='flat'){ var good=(mt.good==='up')?up:!up; col=good?'#4ade80':'#f87171'; } dh='<span style="color:'+col+';font-size:.82rem;font-weight:800;margin-left:8px">'+(up?'▲':'▼')+Math.abs(dl).toFixed(1)+'</span>'; } }
+    h+='<div class="sum-card"><h4>'+mt.label+' <span style="color:'+mt.color+'">'+(+last).toFixed(1)+' '+mt.unit+'</span>'+dh+'</h4>'+lineChart(pts,mt.color)+'</div>';
+  });
+  h+='<div class="sum-card"><h4>📅 기록 ('+dates.length+')</h4>';
+  dates.slice().reverse().forEach(function(d){ var r=mine[d]; h+='<div class="stat-row"><span>'+d+'</span><span style="display:flex;gap:10px;align-items:center"><b style="color:var(--txt);font-weight:700">'+(r.weight!=null?r.weight+'kg':'-')+' · '+(r.smm!=null?r.smm+'kg':'-')+' · '+(r.fat!=null?r.fat+'%':'-')+'</b>'+(isMe?('<span onclick="delInbody(\''+d+'\')" style="cursor:pointer;color:#f87171;font-weight:800">×</span>'):'')+'</span></div>'; });
+  h+='</div>'; body.innerHTML=h;
+}
 var SUMPERSON=null,SUMDATA=null;
 function showSummary(){ el('sumBg').classList.add('show'); SUMPERSON=MYUID; renderSumPeople(); loadSummaryData(); }
 function renderSumPeople(){ var box=el('sumPeople'); box.innerHTML=''; PS.forEach(function(k){ var m=MEMBERS[k]||{}; var av=AVATARS[m.avatar]||AVATARS.lift; var c=document.createElement('div'); c.className='sp-chip'+(SUMPERSON===k?' on':''); c.style.color=SUMPERSON===k?av.c:'var(--txt)'; c.innerHTML='<span>'+av.e+'</span>'+esc(m.name||''); c.onclick=function(){SUMPERSON=k;renderSumPeople();renderSummary();}; box.appendChild(c); }); }
@@ -569,6 +627,7 @@ el('hubCreateBtn').onclick=createRoom; el('hubJoinBtn').onclick=joinRoom;
 el('hub-logout').onclick=function(){ auth.signOut(); };
 el('addExBtn').onclick=openAdd; el('createExBtn').onclick=createEx;
 [].forEach.call(document.querySelectorAll('#newExType button'),function(b){ b.onclick=function(){ [].forEach.call(document.querySelectorAll('#newExType button'),function(x){x.classList.remove('on');}); b.classList.add('on'); var cu=el('customUnits'); if(cu)cu.style.display=(b.dataset.t==='custom')?'flex':'none'; }; });
+if(el('inbDate'))el('inbDate').onchange=prefillInb;
 el('prevM').onclick=function(){CM--;if(CM<0){CM=11;CY--;}attachMonthLogs();renderCal();};
 el('nextM').onclick=function(){CM++;if(CM>11){CM=0;CY++;}attachMonthLogs();renderCal();};
 el('settingsBtn').onclick=openSettings;
