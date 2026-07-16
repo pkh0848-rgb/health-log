@@ -69,6 +69,8 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
 .del-x{flex:0 0 auto;background:transparent;border:none;color:var(--sub);font-size:1.1rem;cursor:pointer}
 .empty-row{text-align:center;color:var(--sub);font-size:.85rem;padding:14px}
 .add-ex-btn{width:100%;background:#0f172a;border:1px dashed var(--accent);color:var(--accent);border-radius:12px;padding:11px;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit;margin-top:2px}
+.copy-day-btn{width:100%;background:transparent;border:1px solid var(--line);color:var(--sub);border-radius:12px;padding:9px;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit;margin-top:8px}
+.copy-day-btn:hover{border-color:var(--accent);color:var(--accent)}
 /* modal */
 .modal-bg{position:fixed;inset:0;background:rgba(2,6,23,.72);display:none;align-items:center;justify-content:center;z-index:9500;padding:16px}
 .modal-bg.show{display:flex}
@@ -180,9 +182,20 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <div class="dp-hd"><span class="t" id="dpTitle">오늘</span><span class="set-sub" id="dpWho"></span></div>
     <div id="dpList"></div>
     <button class="add-ex-btn" id="addExBtn">＋ 운동 추가</button>
+    <button class="copy-day-btn" id="copyDayBtn" style="display:none" onclick="openCopyDay()">📋 이 날 기록 다른 방에도 복사</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v1.2 · 2026.07.13</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v1.3 · 2026.07.13</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+
+<!-- 이 날 다른 방 복사 모달 -->
+<div class="modal-bg" id="copyBg">
+  <div class="modal">
+    <h3>📋 다른 방에 복사</h3>
+    <p class="modal-sub" id="copySub">이 날 내 기록을 선택한 방에 덮어씁니다</p>
+    <div id="copyRoomList"></div>
+    <div class="mfooter"><button class="mbtn mno" onclick="document.getElementById('copyBg').classList.remove('show')">취소</button><button class="mbtn mok" onclick="copyDayToRooms()">복사(덮어쓰기)</button></div>
+  </div>
+</div>
 
 <!-- 운동 추가 모달 -->
 <div class="modal-bg" id="addBg">
@@ -398,10 +411,28 @@ auth.onAuthStateChanged(function(u){
   } else { MYUID=null; ROOM_ID=null; showGate(true); showHub(false); }
 });
 try{ auth.getRedirectResult().catch(function(){}); }catch(e){}
-var MY_ROOMS=[];
-function myRoomIds(){ var rs=(MY_ROOMS||[]).slice(); if(ROOM_ID&&rs.indexOf(ROOM_ID)<0)rs.push(ROOM_ID); return rs.filter(function(r){return !!r;}); }
-function foSet(sub,val){ myRoomIds().forEach(function(rid){ db.ref('rooms/'+rid+'/'+sub).set(val); }); }
-function foRemove(sub){ myRoomIds().forEach(function(rid){ db.ref('rooms/'+rid+'/'+sub).remove(); }); }
+var MY_ROOMS=[]; var MY_ROOMS_INFO={};
+function otherRoomIds(){ return (MY_ROOMS||[]).filter(function(r){return r&&r!==ROOM_ID;}); }
+function openCopyDay(){
+  var others=otherRoomIds();
+  var mine=((MONTHLOGS[selDay]||{})[MYUID])||{}; var cnt=Object.keys(mine).length;
+  if(!cnt){ alert('이 날 복사할 내 기록이 없어요'); return; }
+  if(!others.length){ alert('복사할 다른 방이 없어요'); return; }
+  el('copySub').textContent=(+selDay.slice(5,7))+'/'+(+selDay.slice(8,10))+' 내 기록 '+cnt+'개를 선택한 방에 덮어씁니다';
+  var box=el('copyRoomList'); box.innerHTML='';
+  others.forEach(function(rid){ var info=MY_ROOMS_INFO[rid]||{}; var row=document.createElement('label'); row.style.cssText='display:flex;align-items:center;gap:11px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer'; row.innerHTML='<input type="checkbox" value="'+rid+'" style="width:18px;height:18px;accent-color:var(--accent)"><span style="font-weight:700">🏋️ '+esc(info.name||'방')+'</span>'; box.appendChild(row); });
+  el('copyBg').classList.add('show');
+}
+function copyDayToRooms(){
+  var checks=el('copyRoomList').querySelectorAll('input:checked'); if(!checks.length){ alert('복사할 방을 선택하세요'); return; }
+  var mine=((MONTHLOGS[selDay]||{})[MYUID])||{}; if(!Object.keys(mine).length)return;
+  var rids=[].slice.call(checks).map(function(c){return c.value;});
+  if(!confirm(rids.length+'개 방의 이 날 내 기록을 지금 기록으로 덮어쓸까요?'))return;
+  var exDefs={}; Object.keys(mine).forEach(function(eid){ var e=mine[eid]; if(e&&e.exId&&EXLIB[e.exId])exDefs[e.exId]=EXLIB[e.exId]; });
+  rids.forEach(function(rid){ db.ref('rooms/'+rid+'/logs/'+selDay+'/'+MYUID).set(mine); Object.keys(exDefs).forEach(function(xid){ db.ref('rooms/'+rid+'/exLib/'+xid).set(exDefs[xid]); }); });
+  el('copyBg').classList.remove('show');
+  var b=el('copyDayBtn'); if(b){ var o=b.textContent; b.textContent='✅ '+rids.length+'개 방에 복사됨'; setTimeout(function(){b.textContent=o;},2000); }
+}
 function loadMyRooms(){
   var box=el('hubRoomList'); if(!box)return; box.innerHTML='<div style="color:var(--sub);font-size:.8rem">불러오는 중…</div>';
   db.ref('userRooms/'+MYUID).once('value').then(function(s){ var r=s.val()||{}; var ks=Object.keys(r); box.innerHTML='';
@@ -436,7 +467,7 @@ function bootRoom(rid){
   rRef('meta').once('value').then(function(s){ ROOM_META=s.val()||{}; el('roomTitle').textContent=ROOM_META.name||'운동방'; });
   rRef('members').on('value',function(s){ MEMBERS=s.val()||{}; el('ov').style.display='none'; if(!MEMBERS[MYUID]){ localStorage.removeItem('hl_room'); ROOM_ID=null; loadMyRooms(); showHub(true); return; } PS=Object.keys(MEMBERS); renderMembers(); renderDay(); });
   rRef('exLib').on('value',function(s){ EXLIB=s.val()||{}; });
-  db.ref('userRooms/'+MYUID).on('value',function(s){ MY_ROOMS=Object.keys(s.val()||{}); });
+  db.ref('userRooms/'+MYUID).on('value',function(s){ var v=s.val()||{}; MY_ROOMS=Object.keys(v); MY_ROOMS_INFO=v; });
   attachMonthLogs(); startNotifListener();
 }
 
@@ -480,6 +511,7 @@ function renderDay(){
   var vn=esc((MEMBERS[VIEW_UID]||{}).name||'');
   el('dpWho').textContent=isMe?('내 기록 · '+vn):(vn+'님의 기록');
   var ab=el('addExBtn'); if(ab)ab.style.display=isMe?'':'none';
+  var cpb=el('copyDayBtn'); if(cpb){ var mineIds=Object.keys(((MONTHLOGS[selDay]||{})[MYUID])||{}); cpb.style.display=(isMe&&mineIds.length>0&&otherRoomIds().length>0)?'':'none'; }
   var box=el('dpList'); if(!box)return;
   var mine=((MONTHLOGS[selDay]||{})[VIEW_UID])||{}; var ids=Object.keys(mine);
   var sig=VIEW_UID+'|'+selDay+'|'+isMe+'|'+ids.map(function(id){var e=mine[id]||{};var b=id+':'+(e.done?1:0)+':'+(e.type||'')+':'+(e.name||'')+':'+(e.emoji||''); if(!isMe)b+=':'+(e.weight||'')+':'+(e.reps||'')+':'+(e.sets||'')+':'+(e.dist||'')+':'+(e.min||''); return b;}).join(',');
@@ -508,9 +540,9 @@ function exRow(date,eid,e,editable){
   div.innerHTML=ck+'<div class="ex-body"><div class="ex-name">'+(e.emoji?e.emoji+' ':'')+esc(e.name)+' <span class="mini-unit">'+(tpl.e||'🏋️')+'</span></div><div class="ex-metrics">'+mh+'</div></div>'+dl;
   return div;
 }
-function setMetric(date,eid,field,val){ var v=parseFloat(val); if(isNaN(v))v=null; foSet('logs/'+date+'/'+MYUID+'/'+eid+'/'+field,v); var e0=((MONTHLOGS[date]||{})[MYUID]||{})[eid]; if(e0&&kindOf(e0)==='cardio'&&(field==='dist'||field==='min')){ var row=document.querySelector('#dpList .ex-row[data-eid="'+eid+'"]'); if(row){ var ins=row.querySelectorAll('.mini-inp'); var d=parseFloat(ins[0].value), m=parseFloat(ins[1].value); var c=row.querySelector('.ex-calc'); if(c)c.textContent=(d&&m)?('⚡ '+(d/(m/60)).toFixed(1)+' km/h'):''; } } }
-function toggleDone(date,eid){ var cur=(((MONTHLOGS[date]||{})[MYUID]||{})[eid]||{}); var nd=!cur.done; foSet('logs/'+date+'/'+MYUID+'/'+eid+'/done',nd); foSet('logs/'+date+'/'+MYUID+'/'+eid+'/doneTs',nd?Date.now():null); if(nd)pushNotify('done',cur.name); }
-function delEntry(date,eid){ if(!confirm('이 운동을 삭제할까요? (내 모든 방에서 삭제돼요)'))return; foRemove('logs/'+date+'/'+MYUID+'/'+eid); }
+function setMetric(date,eid,field,val){ var v=parseFloat(val); if(isNaN(v))v=null; rRef('logs/'+date+'/'+MYUID+'/'+eid+'/'+field).set(v); var e0=((MONTHLOGS[date]||{})[MYUID]||{})[eid]; if(e0&&kindOf(e0)==='cardio'&&(field==='dist'||field==='min')){ var row=document.querySelector('#dpList .ex-row[data-eid="'+eid+'"]'); if(row){ var ins=row.querySelectorAll('.mini-inp'); var d=parseFloat(ins[0].value), m=parseFloat(ins[1].value); var c=row.querySelector('.ex-calc'); if(c)c.textContent=(d&&m)?('⚡ '+(d/(m/60)).toFixed(1)+' km/h'):''; } } }
+function toggleDone(date,eid){ var cur=(((MONTHLOGS[date]||{})[MYUID]||{})[eid]||{}); var nd=!cur.done; rRef('logs/'+date+'/'+MYUID+'/'+eid+'/done').set(nd); rRef('logs/'+date+'/'+MYUID+'/'+eid+'/doneTs').set(nd?Date.now():null); if(nd)pushNotify('done',cur.name); }
+function delEntry(date,eid){ if(!confirm('이 운동을 삭제할까요?'))return; rRef('logs/'+date+'/'+MYUID+'/'+eid).remove(); }
 
 /* ===== 운동 추가 / 라이브러리 ===== */
 function openAdd(){
@@ -521,7 +553,7 @@ function openAdd(){
   el('newExName').value=''; el('newExEmoji').value='';
   el('addBg').classList.add('show');
 }
-function addEntryFromLib(exId){ var x=EXLIB[exId]||{}; var kind=kindOf(x); var eid=db.ref().push().key; var entry={exId:exId,name:x.name,kind:kind,emoji:x.emoji||null,done:false,ts:Date.now()}; if(x.ua)entry.ua=x.ua; if(x.ub)entry.ub=x.ub; if(kind==='custom'&&!entry.ua)entry.ua='횟수'; foSet('logs/'+selDay+'/'+MYUID+'/'+eid,entry); foSet('exLib/'+exId,x); el('addBg').classList.remove('show'); }
+function addEntryFromLib(exId){ var x=EXLIB[exId]||{}; var kind=kindOf(x); var eid=db.ref().push().key; var entry={exId:exId,name:x.name,kind:kind,emoji:x.emoji||null,done:false,ts:Date.now()}; if(x.ua)entry.ua=x.ua; if(x.ub)entry.ub=x.ub; if(kind==='custom'&&!entry.ua)entry.ua='횟수'; rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry); rRef('exLib/'+exId).set(x); el('addBg').classList.remove('show'); }
 function createEx(){
   var name=((el('newExName').value)||'').trim(); if(!name){alert('운동 이름을 입력하세요');return;}
   var emoji=((el('newExEmoji').value)||'').trim();
@@ -530,10 +562,10 @@ function createEx(){
   var exId=null; Object.keys(EXLIB).forEach(function(id){ if((EXLIB[id].name||'').toLowerCase()===name.toLowerCase())exId=id; });
   if(!exId)exId=db.ref().push().key;
   var def={name:name,kind:kind,emoji:emoji||null}; if(ua)def.ua=ua; if(ub)def.ub=ub;
-  EXLIB[exId]=def; foSet('exLib/'+exId,def);
+  EXLIB[exId]=def; rRef('exLib/'+exId).set(def);
   var eid=db.ref().push().key;
   var entry={exId:exId,name:name,kind:kind,emoji:emoji||null,done:false,ts:Date.now()}; if(ua)entry.ua=ua; if(ub)entry.ub=ub;
-  foSet('logs/'+selDay+'/'+MYUID+'/'+eid,entry);
+  rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry);
   el('addBg').classList.remove('show');
 }
 function openExLib(){ var box=el('exLibList'); box.innerHTML=''; var ks=Object.keys(EXLIB); if(!ks.length)box.innerHTML='<div class="empty-row">아직 등록된 운동이 없어요</div>'; ks.forEach(function(id){ var x=EXLIB[id]; var tpl=TPL[kindOf(x)]||TPL.strength; var row=document.createElement('div'); row.className='ex-row'; row.innerHTML='<div class="ex-body"><div class="ex-name">'+(x.emoji?x.emoji+' ':'')+esc(x.name)+'</div><div class="set-sub">'+tpl.e+' '+tpl.label+'</div></div><button class="del-x" onclick="delEx(\''+id+'\')">×</button>'; box.appendChild(row); }); el('exLibBg').classList.add('show'); }
@@ -643,7 +675,7 @@ function customCard(K){
 }
 
 /* ===== 알림(인앱) ===== */
-function pushNotify(type,name){ try{ var rec={p:MYUID,name:name||'',type:type,date:selDay,ts:Date.now()}; myRoomIds().forEach(function(rid){ db.ref('rooms/'+rid+'/notifications').push(rec); }); }catch(e){} }
+function pushNotify(type,name){ try{ rRef('notifications').push({p:MYUID,name:name||'',type:type,date:selDay,ts:Date.now()}); }catch(e){} }
 var _nRef=null,_nCb=null;
 function startNotifListener(){ if(_nRef&&_nCb)_nRef.off('value',_nCb); _nRef=rRef('notifications').orderByKey().limitToLast(40); _nCb=_nRef.on('value',function(s){ NOTIFS=[]; s.forEach(function(c){var v=c.val();if(v&&v.ts)NOTIFS.push(v);}); NOTIFS.sort(function(a,b){return b.ts-a.ts;}); renderNotifs(); }); }
 function renderNotifs(){ var badge=el('notifBadge'); var unread=NOTIFS.filter(function(n){return n.ts>NOTIF_LAST;}).length; if(unread>0){badge.style.display='flex';badge.textContent=unread>99?'99+':unread;}else badge.style.display='none'; var panel=el('notifPanel'); var h='<div style="font-weight:800;margin-bottom:8px">🔔 우리 방 소식</div>'; if(!NOTIFS.length)h+='<div class="empty-row">아직 소식이 없어요 💪</div>'; NOTIFS.forEach(function(n){ var m=MEMBERS[n.p]||{}; var av=AVATARS[m.avatar]||AVATARS.lift; var act=n.type==='done'?('<b>'+esc(n.name||'운동')+'</b> 완료 🔥'):'운동 기록'; h+='<div style="display:flex;gap:9px;align-items:center;padding:8px 4px;border-bottom:1px solid #23304a"><div style="width:32px;height:32px;border-radius:50%;background:'+av.c+'22;display:flex;align-items:center;justify-content:center">'+av.e+'</div><div><div style="font-size:.85rem"><b style="color:'+av.c+'">'+esc(m.name||'누군가')+'</b>님이 '+act+'</div><div style="font-size:.68rem;color:var(--sub)">'+relTime(n.ts)+'</div></div></div>'; }); panel.innerHTML=h; }
