@@ -58,6 +58,19 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
 .seg button.on{background:var(--accent);color:#14320a}
 .ex-row{display:flex;align-items:center;gap:10px;background:#172033;border:1px solid var(--line);border-radius:13px;padding:10px;margin-bottom:8px}
 .ex-row.done{border-color:var(--accent)}
+.ex-row2{background:#172033;border:1px solid var(--line);border-radius:14px;padding:10px 11px;margin-bottom:9px}
+.ex-row2.done{border-color:var(--accent)}
+.ex-head{display:flex;align-items:center;gap:10px}
+.ex-head .ex-name{flex:1;min-width:0}
+.set-list{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.set-row{display:flex;align-items:center;gap:7px;background:#0f172a;border:1px solid #23304a;border-radius:10px;padding:6px 8px}
+.set-no{flex:0 0 auto;font-size:.72rem;font-weight:800;color:var(--sub);min-width:38px}
+.set-vals{flex:1;display:flex;gap:5px;flex-wrap:wrap;align-items:center;min-width:0}
+.set-acts{flex:0 0 auto;display:flex;gap:3px}
+.set-btn{background:transparent;border:1px solid #23304a;color:var(--sub);border-radius:7px;width:24px;height:24px;font-size:.78rem;cursor:pointer;font-family:inherit;line-height:1}
+.set-btn:hover{border-color:var(--accent);color:var(--accent)}
+.add-set-btn{background:transparent;border:1px dashed #33415c;color:var(--sub);border-radius:10px;padding:7px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit}
+.add-set-btn:hover{border-color:var(--accent);color:var(--accent)}
 .ckb{flex:0 0 auto;width:30px;height:30px;border-radius:9px;border:2px solid var(--line);background:transparent;color:transparent;font-weight:800;cursor:pointer;font-size:.9rem}
 .ckb.on{background:var(--accent);border-color:var(--accent);color:#14320a}
 .ex-body{flex:1;min-width:0}
@@ -81,6 +94,10 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
 .f-label{font-size:.8rem;color:var(--sub);font-weight:700;margin:10px 0 6px}
 .exlib-grid{display:flex;flex-wrap:wrap;gap:7px}
 .exchip{background:#172033;border:1px solid var(--line);border-radius:11px;padding:9px 12px;font-size:.86rem;font-weight:700;cursor:pointer;color:var(--txt)}
+.pick-card{background:#141d2e;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.pick-card.fav{background:#16220f;border-color:#3f5c1e}
+.pick-hd{font-size:.84rem;font-weight:800;color:var(--txt);margin-bottom:9px}
+.pick-card.fav .pick-hd{color:var(--accent)}
 .exchip.cardio{border-color:#38bdf855}.exchip.strength{border-color:#f9731655}
 .exchip:hover{background:#223049}
 .mfooter{display:flex;gap:8px;margin-top:16px}
@@ -185,7 +202,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <button class="copy-day-btn" id="copyDayBtn" style="display:none" onclick="openCopyDay()">📋 이 날 기록 다른 방에도 복사</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v1.3 · 2026.07.13</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v1.4 · 2026.07.13</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
 
 <!-- 이 날 다른 방 복사 모달 -->
 <div class="modal-bg" id="copyBg">
@@ -201,13 +218,16 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
 <div class="modal-bg" id="addBg">
   <div class="modal">
     <h3>＋ 운동 추가</h3>
-    <p class="modal-sub" id="addSub">목록에서 고르거나 새 운동을 만들어요</p>
+    <p class="modal-sub" id="addSub">자주 하는 운동에서 고르거나, 새로 만들어요</p>
     <div id="addPick">
-      <div class="f-label">🔁 자주 하는 운동</div>
-      <div class="exlib-grid" id="addLibGrid"></div>
-      <div class="f-label">＋ 새 운동 만들기</div>
-      <div class="frow" style="display:flex;gap:8px"><input class="f-inp" id="newExName" placeholder="예: 벤치프레스, 러닝" maxlength="20"/><input class="f-inp" id="newExEmoji" placeholder="🏋️" maxlength="2" style="flex:0 0 64px;text-align:center"/></div>
-      <div class="f-label" style="margin-top:12px">📝 기록 방식</div>
+      <div class="pick-card fav">
+        <div class="pick-hd">⭐ 내가 자주 하는 운동</div>
+        <div class="exlib-grid" id="addLibGrid"></div>
+      </div>
+      <div class="pick-card">
+        <div class="pick-hd">✏️ 새 운동 만들기</div>
+        <div class="frow" style="display:flex;gap:8px"><input class="f-inp" id="newExName" placeholder="운동 이름 (예: 벤치프레스)" maxlength="20"/><input class="f-inp" id="newExEmoji" placeholder="🏋️" maxlength="2" style="flex:0 0 64px;text-align:center"/></div>
+      <div class="f-label" style="margin-top:12px">운동 종류</div>
       <div class="type-seg" id="newExType">
         <button data-t="simple" class="on">⏱️ 간편<small>시간(분)만</small></button>
         <button data-t="strength">🏋️ 근력<small>무게·횟수·세트</small></button>
@@ -223,6 +243,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
       </div>
       <div id="cuHint" style="font-size:.72rem;color:var(--sub);margin-top:5px">⏱️ 기본은 <b>분</b>만 적으면 돼요. 무게·횟수 같은 걸 더 남기고 싶을 때만 위에 단위를 적으세요.</div>
       <button class="mbtn mok" style="margin-top:12px;width:100%" id="createExBtn">이 운동 추가</button>
+      </div>
     </div>
     <div class="mfooter"><button class="mbtn mno" onclick="document.getElementById('addBg').classList.remove('show')">닫기</button></div>
   </div>
@@ -346,10 +367,10 @@ var TPL={
 function kindOf(e){ return (e&&e.kind)||((e&&e.type==='cardio')?'cardio':'strength'); }
 function fmtSec(x){ x=Math.round(x||0); if(x<60)return x+'초'; var m=Math.floor(x/60),r=x%60; return m+'분'+(r?r+'초':''); }
 var SUM_META={
- strength:{e:'🏋️',label:'근력',pf:function(e){return (+e.weight||0)*(+e.reps||0)*(+e.sets||0);},pl:'총 볼륨',mf:function(e){return +e.weight||0;},ml:'최고 무게',fmtP:function(v){return Math.round(v).toLocaleString()+' kg';},fmtM:function(v){return v+' kg';}},
- reps:{e:'🔁',label:'맨몸(횟수)',pf:function(e){return (+e.reps||0)*(+e.sets||0);},pl:'총 횟수',mf:function(e){return +e.reps||0;},ml:'최고 횟수',fmtP:function(v){return Math.round(v).toLocaleString()+' 회';},fmtM:function(v){return v+' 회';}},
- hold:{e:'🧘',label:'스트레칭',pf:function(e){return (+e.sec||0)*(+e.sets||0);},pl:'총 시간',mf:function(e){return +e.sec||0;},ml:'최고 유지',fmtP:function(v){return fmtSec(v);},fmtM:function(v){return fmtSec(v);}},
- stairs:{e:'🪜',label:'계단/등반',pf:function(e){return (+e.floor||0)*(+e.reps||0);},pl:'총 층수',mf:function(e){return +e.floor||0;},ml:'최고 층수',fmtP:function(v){return Math.round(v).toLocaleString()+' 층';},fmtM:function(v){return v+' 층';}}
+ strength:{e:'🏋️',label:'근력',pf:function(e){return volRows(e);},pl:'총 볼륨',mf:function(e){return maxRows(e,'weight');},ml:'최고 무게',fmtP:function(v){return Math.round(v).toLocaleString()+' kg';},fmtM:function(v){return v+' kg';}},
+ reps:{e:'🔁',label:'맨몸(횟수)',pf:function(e){return sumRows(e,'reps');},pl:'총 횟수',mf:function(e){return maxRows(e,'reps');},ml:'최고 횟수',fmtP:function(v){return Math.round(v).toLocaleString()+' 회';},fmtM:function(v){return v+' 회';}},
+ hold:{e:'🧘',label:'스트레칭',pf:function(e){return sumRows(e,'sec');},pl:'총 시간',mf:function(e){return maxRows(e,'sec');},ml:'최고 유지',fmtP:function(v){return fmtSec(v);},fmtM:function(v){return fmtSec(v);}},
+ stairs:{e:'🪜',label:'계단/등반',pf:function(e){return sumRows(e,'floor');},pl:'총 층수',mf:function(e){return maxRows(e,'floor');},ml:'최고 층수',fmtP:function(v){return Math.round(v).toLocaleString()+' 층';},fmtM:function(v){return v+' 층';}}
 };
 function relTime(ts){var s=Math.floor((Date.now()-ts)/1000);if(s<60)return '방금';if(s<3600)return Math.floor(s/60)+'분 전';if(s<86400)return Math.floor(s/3600)+'시간 전';return Math.floor(s/86400)+'일 전';}
 
@@ -514,30 +535,71 @@ function renderDay(){
   var cpb=el('copyDayBtn'); if(cpb){ var mineIds=Object.keys(((MONTHLOGS[selDay]||{})[MYUID])||{}); cpb.style.display=(isMe&&mineIds.length>0&&otherRoomIds().length>0)?'':'none'; }
   var box=el('dpList'); if(!box)return;
   var mine=((MONTHLOGS[selDay]||{})[VIEW_UID])||{}; var ids=Object.keys(mine);
-  var sig=VIEW_UID+'|'+selDay+'|'+isMe+'|'+ids.map(function(id){var e=mine[id]||{};var b=id+':'+(e.done?1:0)+':'+(e.type||'')+':'+(e.name||'')+':'+(e.emoji||''); if(!isMe)b+=':'+(e.weight||'')+':'+(e.reps||'')+':'+(e.sets||'')+':'+(e.dist||'')+':'+(e.min||''); return b;}).join(',');
+  var sig=VIEW_UID+'|'+selDay+'|'+isMe+'|'+ids.map(function(id){var e=mine[id]||{};var b=id+':'+(e.done?1:0)+':'+(e.kind||e.type||'')+':'+(e.name||'')+':'+(e.emoji||'')+':'+entryRows(e).length; if(!isMe)b+=':'+JSON.stringify(entryRows(e)); return b;}).join(',');
   if(sig===_lastDaySig && box.childElementCount){ return; }
   _lastDaySig=sig; box.innerHTML='';
   if(!ids.length){ box.innerHTML='<div class="empty-row">'+(isMe?'아직 기록이 없어요.<br>아래 ＋운동 추가로 시작해요! 💪':(vn+'님은 이 날 운동 기록이 없어요 💤'))+'</div>'; return; }
   ids.forEach(function(eid){ box.appendChild(exRow(selDay,eid,mine[eid],isMe)); });
 }
-function entryFields(e){
+function rowFields(e){
   var kind=kindOf(e);
   if(kind==='simple'){ var f=[{k:'min',u:'분'}]; if(e.ua)f.push({k:'a',u:e.ua}); if(e.ub)f.push({k:'b',u:e.ub}); return f; }
   if(kind==='custom'){ return [{k:'a',u:e.ua||'값1'},{k:'b',u:e.ub||'값2'}]; }
-  return (TPL[kind]||TPL.strength).fields;
+  if(kind==='strength')return [{k:'weight',u:'kg',step:'0.5'},{k:'reps',u:'회'}];
+  if(kind==='reps')return [{k:'reps',u:'회'}];
+  if(kind==='hold')return [{k:'sec',u:'초'}];
+  if(kind==='stairs')return [{k:'floor',u:'층'}];
+  if(kind==='cardio')return [{k:'dist',u:'km',step:'0.1'},{k:'min',u:'분'}];
+  return [{k:'min',u:'분'}];
 }
+function cloneObj(o){ var c={}; Object.keys(o||{}).forEach(function(k){c[k]=o[k];}); return c; }
+function entryRows(e){
+  e=e||{};
+  if(Array.isArray(e.rows)&&e.rows.length)return e.rows;
+  if(e.rows&&typeof e.rows==='object'){ var ks=Object.keys(e.rows).sort(function(a,b){return (+a)-(+b);}); if(ks.length)return ks.map(function(k){return e.rows[k]||{};}); }
+  var kind=kindOf(e), n=1;
+  if(kind==='strength'||kind==='reps'||kind==='hold')n=Math.max(1,Math.min(30,+e.sets||1));
+  if(kind==='stairs')n=Math.max(1,Math.min(30,+e.reps||1));
+  var base={}; rowFields(e).forEach(function(f){ if(e[f.k]!=null)base[f.k]=e[f.k]; });
+  var out=[]; for(var i=0;i<n;i++)out.push(cloneObj(base));
+  return out;
+}
+function setBased(e){ var k=kindOf(e); return k==='strength'||k==='reps'||k==='hold'||k==='stairs'; }
+function sumRows(e,f){ var t=0; entryRows(e).forEach(function(r){t+=(+r[f]||0);}); return t; }
+function maxRows(e,f){ var m=0; entryRows(e).forEach(function(r){var v=+r[f]||0; if(v>m)m=v;}); return m; }
+function volRows(e){ var t=0; entryRows(e).forEach(function(r){t+=(+r.weight||0)*(+r.reps||0);}); return t; }
+function curRows(date,eid){ var e=((MONTHLOGS[date]||{})[MYUID]||{})[eid]; return entryRows(e||{}).map(cloneObj); }
+function writeRows(date,eid,rows){ rRef('logs/'+date+'/'+MYUID+'/'+eid+'/rows').set(rows); }
+function setRowVal(date,eid,i,field,val){
+  var rows=curRows(date,eid); if(!rows[i])rows[i]={};
+  var v=parseFloat(val); if(isNaN(v))delete rows[i][field]; else rows[i][field]=v;
+  writeRows(date,eid,rows);
+  var e0=((MONTHLOGS[date]||{})[MYUID]||{})[eid];
+  if(e0&&kindOf(e0)==='cardio'){ var rw=document.querySelector('#dpList .set-row[data-eid="'+eid+'"][data-i="'+i+'"]'); if(rw){ var ins=rw.querySelectorAll('.mini-inp'); var d=parseFloat(ins[0].value), m=parseFloat(ins[1].value); var c=rw.querySelector('.ex-calc'); if(c)c.textContent=(d&&m)?('⚡ '+(d/(m/60)).toFixed(1)+' km/h'):''; } }
+}
+function addSet(date,eid){ var rows=curRows(date,eid); rows.push({}); writeRows(date,eid,rows); }
+function dupSet(date,eid,i){ var rows=curRows(date,eid); rows.splice(i+1,0,cloneObj(rows[i]||{})); writeRows(date,eid,rows); }
+function delSet(date,eid,i){ var rows=curRows(date,eid); if(rows.length<=1)rows=[{}]; else rows.splice(i,1); writeRows(date,eid,rows); }
 function exRow(date,eid,e,editable){
-  var div=document.createElement('div'); div.className='ex-row'+(e.done?' done':''); div.dataset.eid=eid;
-  var kind=kindOf(e); var tpl=TPL[kind]||TPL.strength; var mh=''; var flds=entryFields(e);
-  flds.forEach(function(f){
-    var unit=f.u; var val=(e[f.k]!=null?e[f.k]:'');
-    if(editable){ mh+='<input class="mini-inp" type="number"'+(f.step?(' step="'+f.step+'"'):'')+' value="'+val+'" placeholder="0" oninput="setMetric(\''+date+'\',\''+eid+'\',\''+f.k+'\',this.value)"><span class="mini-unit">'+esc(unit)+'</span>'; }
-    else { mh+='<span class="ro-m">'+(e[f.k]!=null?e[f.k]:'-')+' <span class="mini-unit">'+esc(unit)+'</span></span>'; }
-  });
-  if(tpl.speed){ var spd=(e.dist&&e.min)?(e.dist/(e.min/60)).toFixed(1):null; if(spd)mh+='<span class="ex-calc">⚡ '+spd+' km/h</span>'; else if(editable)mh+='<span class="ex-calc"></span>'; }
+  var div=document.createElement('div'); div.className='ex-row2'+(e.done?' done':''); div.dataset.eid=eid;
+  var kind=kindOf(e); var tpl=TPL[kind]||TPL.strength; var rows=entryRows(e); var flds=rowFields(e); var sb=setBased(e)||rows.length>1;
   var ck=editable?('<button class="ckb'+(e.done?' on':'')+'" onclick="toggleDone(\''+date+'\',\''+eid+'\')">✓</button>'):('<div class="ckb'+(e.done?' on':'')+'" style="cursor:default">'+(e.done?'✓':'')+'</div>');
   var dl=editable?('<button class="del-x" onclick="delEntry(\''+date+'\',\''+eid+'\')">×</button>'):'';
-  div.innerHTML=ck+'<div class="ex-body"><div class="ex-name">'+(e.emoji?e.emoji+' ':'')+esc(e.name)+' <span class="mini-unit">'+(tpl.e||'🏋️')+'</span></div><div class="ex-metrics">'+mh+'</div></div>'+dl;
+  var head='<div class="ex-head">'+ck+'<div class="ex-name">'+(e.emoji?e.emoji+' ':'')+esc(e.name)+' <span class="mini-unit">'+(tpl.e||'🏋️')+'</span></div>'+dl+'</div>';
+  var body='';
+  rows.forEach(function(r,i){
+    var cells='';
+    flds.forEach(function(f){
+      var val=(r[f.k]!=null?r[f.k]:'');
+      if(editable) cells+='<input class="mini-inp" type="number"'+(f.step?(' step="'+f.step+'"'):'')+' value="'+val+'" placeholder="0" oninput="setRowVal(\''+date+'\',\''+eid+'\','+i+',\''+f.k+'\',this.value)"><span class="mini-unit">'+esc(f.u)+'</span>';
+      else cells+='<span class="ro-m">'+(r[f.k]!=null?r[f.k]:'-')+' <span class="mini-unit">'+esc(f.u)+'</span></span>';
+    });
+    if(kind==='cardio'){ var spd=(r.dist&&r.min)?(r.dist/(r.min/60)).toFixed(1):null; cells+='<span class="ex-calc">'+(spd?('⚡ '+spd+' km/h'):'')+'</span>'; }
+    var acts=editable?('<span class="set-acts"><button class="set-btn" title="이 세트 복사" onclick="dupSet(\''+date+'\',\''+eid+'\','+i+')">⧉</button><button class="set-btn" title="이 세트 삭제" onclick="delSet(\''+date+'\',\''+eid+'\','+i+')">−</button></span>'):'';
+    body+='<div class="set-row" data-eid="'+eid+'" data-i="'+i+'">'+(sb?('<span class="set-no">'+(i+1)+'세트</span>'):'')+'<span class="set-vals">'+cells+'</span>'+acts+'</div>';
+  });
+  if(editable) body+='<button class="add-set-btn" onclick="addSet(\''+date+'\',\''+eid+'\')">＋ 세트 추가</button>';
+  div.innerHTML=head+'<div class="set-list">'+body+'</div>';
   return div;
 }
 function setMetric(date,eid,field,val){ var v=parseFloat(val); if(isNaN(v))v=null; rRef('logs/'+date+'/'+MYUID+'/'+eid+'/'+field).set(v); var e0=((MONTHLOGS[date]||{})[MYUID]||{})[eid]; if(e0&&kindOf(e0)==='cardio'&&(field==='dist'||field==='min')){ var row=document.querySelector('#dpList .ex-row[data-eid="'+eid+'"]'); if(row){ var ins=row.querySelectorAll('.mini-inp'); var d=parseFloat(ins[0].value), m=parseFloat(ins[1].value); var c=row.querySelector('.ex-calc'); if(c)c.textContent=(d&&m)?('⚡ '+(d/(m/60)).toFixed(1)+' km/h'):''; } } }
@@ -545,13 +607,41 @@ function toggleDone(date,eid){ var cur=(((MONTHLOGS[date]||{})[MYUID]||{})[eid]|
 function delEntry(date,eid){ if(!confirm('이 운동을 삭제할까요?'))return; rRef('logs/'+date+'/'+MYUID+'/'+eid).remove(); }
 
 /* ===== 운동 추가 / 라이브러리 ===== */
+var MYFREQ=[];
+function loadMyFreq(cb){
+  var st=new Date(); st.setDate(st.getDate()-70); var sk=kStr(st.getFullYear(),st.getMonth(),st.getDate());
+  rRef('logs').orderByKey().startAt(sk).once('value').then(function(s){
+    var map={};
+    s.forEach(function(c){ var pl=(c.val()||{})[MYUID]; if(!pl)return;
+      Object.keys(pl).forEach(function(eid){ var e=pl[eid]||{}; var key=((e.name||'')+'').trim(); if(!key)return;
+        if(!map[key])map[key]={name:e.name,kind:kindOf(e),emoji:e.emoji||null,ua:e.ua||null,ub:e.ub||null,n:0,last:0};
+        map[key].n++; var t=+e.ts||0;
+        if(t>=map[key].last){ map[key].last=t; map[key].kind=kindOf(e); map[key].emoji=e.emoji||null; map[key].ua=e.ua||null; map[key].ub=e.ub||null; }
+      });
+    });
+    MYFREQ=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return (b.n-a.n)||(b.last-a.last);}).slice(0,14);
+    if(cb)cb();
+  }).catch(function(){ MYFREQ=[]; if(cb)cb(); });
+}
+function renderFreqChips(){
+  var g=el('addLibGrid'); if(!g)return; g.innerHTML='';
+  if(!MYFREQ.length){ g.innerHTML='<div style="color:var(--sub);font-size:.8rem">아직 없어요. 아래에서 새 운동을 만들면 여기에 쌓여요 👇</div>'; return; }
+  MYFREQ.forEach(function(x,i){ var tpl=TPL[x.kind]||TPL.simple; var b=document.createElement('button'); b.className='exchip'; b.innerHTML=(x.emoji?x.emoji+' ':'')+esc(x.name)+' <span style="font-size:.7rem;color:var(--sub)">'+tpl.e+'</span>'; b.onclick=function(){ addEntryFromFreq(i); }; g.appendChild(b); });
+}
+function addEntryFromFreq(i){
+  var x=MYFREQ[i]; if(!x)return;
+  var eid=db.ref().push().key;
+  var entry={name:x.name,kind:x.kind,emoji:x.emoji||null,done:false,ts:Date.now(),rows:[{}]};
+  if(x.ua)entry.ua=x.ua; if(x.ub)entry.ub=x.ub;
+  rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry);
+  el('addBg').classList.remove('show');
+}
 function openAdd(){
   if(!MEMBERS[MYUID]){ alert('잠시 후 다시 시도해주세요'); return; }
-  var g=el('addLibGrid'); g.innerHTML=''; var ks=Object.keys(EXLIB);
-  if(!ks.length){ g.innerHTML='<div style="color:var(--sub);font-size:.8rem">아직 없어요. 아래에서 새 운동을 만들어요 👇</div>'; }
-  ks.forEach(function(id){ var x=EXLIB[id]; var tpl=TPL[kindOf(x)]||TPL.strength; var b=document.createElement('button'); b.className='exchip'; b.innerHTML=(x.emoji?x.emoji+' ':'')+esc(x.name)+' <span style="font-size:.7rem;color:var(--sub)">'+tpl.e+'</span>'; b.onclick=function(){ addEntryFromLib(id); }; g.appendChild(b); });
   el('newExName').value=''; el('newExEmoji').value='';
+  var g=el('addLibGrid'); if(g)g.innerHTML='<div style="color:var(--sub);font-size:.8rem">불러오는 중…</div>';
   el('addBg').classList.add('show');
+  loadMyFreq(renderFreqChips);
 }
 function addEntryFromLib(exId){ var x=EXLIB[exId]||{}; var kind=kindOf(x); var eid=db.ref().push().key; var entry={exId:exId,name:x.name,kind:kind,emoji:x.emoji||null,done:false,ts:Date.now()}; if(x.ua)entry.ua=x.ua; if(x.ub)entry.ub=x.ub; if(kind==='custom'&&!entry.ua)entry.ua='횟수'; rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry); rRef('exLib/'+exId).set(x); el('addBg').classList.remove('show'); }
 function createEx(){
@@ -564,7 +654,7 @@ function createEx(){
   var def={name:name,kind:kind,emoji:emoji||null}; if(ua)def.ua=ua; if(ub)def.ub=ub;
   EXLIB[exId]=def; rRef('exLib/'+exId).set(def);
   var eid=db.ref().push().key;
-  var entry={exId:exId,name:name,kind:kind,emoji:emoji||null,done:false,ts:Date.now()}; if(ua)entry.ua=ua; if(ub)entry.ub=ub;
+  var entry={exId:exId,name:name,kind:kind,emoji:emoji||null,done:false,ts:Date.now(),rows:[{}]}; if(ua)entry.ua=ua; if(ub)entry.ub=ub;
   rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry);
   el('addBg').classList.remove('show');
 }
@@ -616,14 +706,14 @@ function renderSummary(){
   var byKind={}; var ov={totMin:0,ex:{},days:{},hours:[0,0,0,0],dayItems:{}}; var anyDone=false;
   Object.keys(SUMDATA).forEach(function(date){ var pl=(SUMDATA[date]||{})[SUMPERSON]; if(!pl)return; var wk=weekStart(date);
     Object.keys(pl).forEach(function(eid){ var e=pl[eid]; if(!e.done)return; anyDone=true; var kind=kindOf(e); var nm=e.name||'운동';
-      var mins=+e.min||0; ov.totMin+=mins; if(mins>0)ov.ex[nm]=(ov.ex[nm]||0)+mins; ov.days[date]=true;
+      var mins=sumRows(e,'min'); ov.totMin+=mins; if(mins>0)ov.ex[nm]=(ov.ex[nm]||0)+mins; ov.days[date]=true;
       var tt=new Date(e.doneTs||e.ts||0); var hh=tt.getHours(); var bk=(hh>=5&&hh<11)?0:(hh>=11&&hh<17)?1:(hh>=17&&hh<22)?2:3; ov.hours[bk]++;
       if(!ov.dayItems[date])ov.dayItems[date]=[]; ov.dayItems[date].push({name:nm,min:mins});
       if(kind==='simple')return;
       if(!byKind[kind])byKind[kind]={weeks:{},ex:{},totDist:0,totMin:0};
       var K=byKind[kind];
-      if(kind==='cardio'){ var dist=+e.dist||0,min=+e.min||0; K.totDist+=dist; K.totMin+=min; K.weeks[wk]=(K.weeks[wk]||0)+dist; }
-      else if(kind==='custom'){ if(!K.ex[nm])K.ex[nm]={a:0,b:0,ua:e.ua||'',ub:e.ub||''}; K.ex[nm].a+=(+e.a||0); K.ex[nm].b+=(+e.b||0); }
+      if(kind==='cardio'){ var dist=sumRows(e,'dist'),min=sumRows(e,'min'); K.totDist+=dist; K.totMin+=min; K.weeks[wk]=(K.weeks[wk]||0)+dist; }
+      else if(kind==='custom'){ if(!K.ex[nm])K.ex[nm]={a:0,b:0,ua:e.ua||'',ub:e.ub||''}; K.ex[nm].a+=sumRows(e,'a'); K.ex[nm].b+=sumRows(e,'b'); }
       else { var meta=SUM_META[kind]; if(!meta)return; var pv=meta.pf(e),mx=meta.mf(e); K.weeks[wk]=(K.weeks[wk]||0)+pv; if(!K.ex[nm])K.ex[nm]={max:0,sum:0}; if(mx>K.ex[nm].max)K.ex[nm].max=mx; K.ex[nm].sum+=pv; }
     });
   });
