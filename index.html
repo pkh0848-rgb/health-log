@@ -202,7 +202,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
     <button class="copy-day-btn" id="copyDayBtn" style="display:none" onclick="openCopyDay()">📋 이 날 기록 다른 방에도 복사</button>
   </div>
 </div>
-<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v1.4 · 2026.07.13</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
+<div class="site-footer"><div>💪 <b>healthLog</b> · 함께 성장하는 운동 기록</div><div class="sf-ver" id="sfVer">v1.5 · 2026.07.13</div> <span id="switchroom" style="cursor:pointer;text-decoration:underline;color:var(--sub);margin-left:6px">🏋️ 대기실</span></div>
 
 <!-- 이 날 다른 방 복사 모달 -->
 <div class="modal-bg" id="copyBg">
@@ -569,7 +569,12 @@ function sumRows(e,f){ var t=0; entryRows(e).forEach(function(r){t+=(+r[f]||0);}
 function maxRows(e,f){ var m=0; entryRows(e).forEach(function(r){var v=+r[f]||0; if(v>m)m=v;}); return m; }
 function volRows(e){ var t=0; entryRows(e).forEach(function(r){t+=(+r.weight||0)*(+r.reps||0);}); return t; }
 function curRows(date,eid){ var e=((MONTHLOGS[date]||{})[MYUID]||{})[eid]; return entryRows(e||{}).map(cloneObj); }
-function writeRows(date,eid,rows){ rRef('logs/'+date+'/'+MYUID+'/'+eid+'/rows').set(rows); }
+function normRows(rows){
+  var out=(rows||[]).map(function(r){ var c=cloneObj(r); var has=false; Object.keys(c).forEach(function(k){ if(k!=='z'&&c[k]!=null)has=true; }); if(has)delete c.z; else c.z=0; return c; });
+  if(!out.length)out=[{z:0}];
+  return out;
+}
+function writeRows(date,eid,rows){ rRef('logs/'+date+'/'+MYUID+'/'+eid+'/rows').set(normRows(rows)); }
 function setRowVal(date,eid,i,field,val){
   var rows=curRows(date,eid); if(!rows[i])rows[i]={};
   var v=parseFloat(val); if(isNaN(v))delete rows[i][field]; else rows[i][field]=v;
