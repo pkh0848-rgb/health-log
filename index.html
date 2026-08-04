@@ -1009,6 +1009,8 @@ if(el('inbDate'))el('inbDate').onchange=prefillInb;
 el('prevM').onclick=function(){CM--;if(CM<0){CM=11;CY--;}attachMonthLogs();renderCal();};
 el('nextM').onclick=function(){CM++;if(CM>11){CM=0;CY++;}attachMonthLogs();renderCal();};
 el('settingsBtn').onclick=openSettings;
+/* 홈 화면에 앱으로 설치되게 (standalone — 크롬 탭·주소창 없이 열림) */
+if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 el('settingsBg').onclick=function(e){ if(e.target===this)this.classList.remove('show'); };
 el('setCopyCode').onclick=function(){ var c=ROOM_META.code||''; if(!c)return; try{navigator.clipboard.writeText(c);}catch(e){} var b=this; b.textContent='복사됨!'; setTimeout(function(){b.textContent='복사';},1200); };
 function inviteURL(){ return location.origin+location.pathname+'?join='+((ROOM_META&&ROOM_META.code)||''); }
