@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- healthLog: 연동 공유(운동·인바디) 1785853691 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
@@ -161,6 +162,13 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
 .pick-card{background:#141d2e;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
 .pick-card.fav{background:#16220f;border-color:#3f5c1e}
 .pick-hd{font-size:.84rem;font-weight:800;color:var(--txt);margin-bottom:9px}
+.sh-room{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px}
+.sh-room .nm{font-weight:800;font-size:.86rem;margin-bottom:8px}
+.sh-opts{display:flex;gap:8px}
+.sh-opt{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);
+  border-radius:10px;padding:8px 6px;font-size:.78rem;font-weight:700;color:var(--sub);cursor:pointer;background:none}
+.sh-opt.on{border-color:var(--accent);color:var(--accent);background:var(--accent)11}
+.sh-empty{color:var(--sub);font-size:.8rem}
 .pick-card.fav .pick-hd{color:var(--accent)}
 .exchip.cardio{border-color:#38bdf855}.exchip.strength{border-color:#f9731655}
 .exchip:hover{background:#223049}
@@ -342,6 +350,11 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
       <div class="ava-grid" id="setAvatarGrid"></div>
     </div>
     <div class="set-sec">
+      <div class="set-label">🔗 다른 방과 함께 남기기</div>
+      <div class="set-sub" style="margin-bottom:9px">켜 둔 방에는 내 기록이 자동으로 같이 남고, 한 곳에서 고치면 모두 반영돼요.</div>
+      <div id="shareRoomList"></div>
+    </div>
+    <div class="set-sec">
       <div class="set-row"><div><div class="set-label">🔔 푸시 알림</div><div class="set-sub">친구가 운동하면 폰으로 알림</div></div><button class="toggle" id="notiToggle"><span class="knob"></span></button></div>
       <div class="set-sub" id="setNotiHint" style="margin-top:6px"></div>
     </div>
@@ -498,12 +511,44 @@ auth.onAuthStateChanged(function(u){
 try{ auth.getRedirectResult().catch(function(){}); }catch(e){}
 var MY_ROOMS=[]; var MY_ROOMS_INFO={};
 function otherRoomIds(){ return (MY_ROOMS||[]).filter(function(r){return r&&r!==ROOM_ID;}); }
+
+/* ===== 다른 방과 함께 남기기(연동 공유) =====
+   기록은 방마다 저장되지만 같은 eid(운동)·같은 날짜(인바디)를 쓰므로,
+   한 곳에서 고치면 켜 둔 방들에 그대로 반영된다.
+   설정은 userRooms/{내uid}/{방id}/share = {log:bool, inb:bool} 에 저장.
+   기본값 — 인바디는 켬(어느 방에서든 같은 내 몸 숫자라서), 운동은 끔. */
+function shareCfg(rid){
+  var c=((MY_ROOMS_INFO[rid]||{}).share)||{};
+  return { log: c.log===true, inb: c.inb!==false };
+}
+function shareRooms(kind){
+  return (MY_ROOMS||[]).filter(function(rid){
+    return rid && rid!==ROOM_ID && shareCfg(rid)[kind==='inb'?'inb':'log'];
+  });
+}
+function fanSet(kind,sub,val){
+  shareRooms(kind).forEach(function(rid){ db.ref('rooms/'+rid+'/'+sub).set(val).catch(function(){}); });
+}
+function fanRemove(kind,sub){
+  shareRooms(kind).forEach(function(rid){ db.ref('rooms/'+rid+'/'+sub).remove().catch(function(){}); });
+}
+/* 운동 항목을 옮길 땐 운동 정의(exLib)도 같이 보내야 단위가 제대로 보인다 */
+function fanEntry(date,eid,entry){
+  var def = entry && entry.exId ? (EXLIB[entry.exId]||null) : null;
+  shareRooms('log').forEach(function(rid){
+    db.ref('rooms/'+rid+'/logs/'+date+'/'+MYUID+'/'+eid).set(entry).catch(function(){});
+    if(def) db.ref('rooms/'+rid+'/exLib/'+entry.exId).set(def).catch(function(){});
+  });
+}
+function shareRoomNames(kind){
+  return shareRooms(kind).map(function(rid){ return (MY_ROOMS_INFO[rid]||{}).name||'방'; });
+}
 function openCopyDay(){
   var others=otherRoomIds();
   var mine=((MONTHLOGS[selDay]||{})[MYUID])||{}; var cnt=Object.keys(mine).length;
   if(!cnt){ alert('이 날 복사할 내 기록이 없어요'); return; }
   if(!others.length){ alert('복사할 다른 방이 없어요'); return; }
-  el('copySub').textContent=(+selDay.slice(5,7))+'/'+(+selDay.slice(8,10))+' 내 기록 '+cnt+'개를 선택한 방에 덮어씁니다';
+  el('copySub').textContent=(+selDay.slice(5,7))+'/'+(+selDay.slice(8,10))+' 내 기록 '+cnt+'개를 선택한 방에 넣습니다 (그 방에 있던 다른 기록은 그대로)';
   var box=el('copyRoomList'); box.innerHTML='';
   others.forEach(function(rid){ var info=MY_ROOMS_INFO[rid]||{}; var row=document.createElement('label'); row.style.cssText='display:flex;align-items:center;gap:11px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer'; row.innerHTML='<input type="checkbox" value="'+rid+'" style="width:18px;height:18px;accent-color:var(--accent)"><span style="font-weight:700">🏋️ '+esc(info.name||'방')+'</span>'; box.appendChild(row); });
   el('copyBg').classList.add('show');
@@ -512,11 +557,11 @@ function copyDayToRooms(){
   var checks=el('copyRoomList').querySelectorAll('input:checked'); if(!checks.length){ alert('복사할 방을 선택하세요'); return; }
   var mine=((MONTHLOGS[selDay]||{})[MYUID])||{}; if(!Object.keys(mine).length)return;
   var rids=[].slice.call(checks).map(function(c){return c.value;});
-  if(!confirm(rids.length+'개 방의 이 날 내 기록을 지금 기록으로 덮어쓸까요?'))return;
+  if(!confirm(rids.length+'개 방에 이 날 내 기록을 넣을까요?'))return;
   var exDefs={}; Object.keys(mine).forEach(function(eid){ var e=mine[eid]; if(e&&e.exId&&EXLIB[e.exId])exDefs[e.exId]=EXLIB[e.exId]; });
-  rids.forEach(function(rid){ db.ref('rooms/'+rid+'/logs/'+selDay+'/'+MYUID).set(mine); Object.keys(exDefs).forEach(function(xid){ db.ref('rooms/'+rid+'/exLib/'+xid).set(exDefs[xid]); }); });
+  rids.forEach(function(rid){ Object.keys(mine).forEach(function(eid){ db.ref('rooms/'+rid+'/logs/'+selDay+'/'+MYUID+'/'+eid).set(mine[eid]).catch(function(){}); }); Object.keys(exDefs).forEach(function(xid){ db.ref('rooms/'+rid+'/exLib/'+xid).set(exDefs[xid]).catch(function(){}); }); });
   el('copyBg').classList.remove('show');
-  var b=el('copyDayBtn'); if(b){ var o=b.textContent; b.textContent='✅ '+rids.length+'개 방에 복사됨'; setTimeout(function(){b.textContent=o;},2000); }
+  var b=el('copyDayBtn'); if(b){ var o=b.textContent; b.textContent='✅ '+rids.length+'개 방에 넣었어요'; setTimeout(function(){b.textContent=o;},2000); }
 }
 function loadMyRooms(){
   var box=el('hubRoomList'); if(!box)return; box.innerHTML='<div style="color:var(--sub);font-size:.8rem">불러오는 중…</div>';
@@ -638,7 +683,7 @@ function normRows(rows){
   if(!out.length)out=[{z:0}];
   return out;
 }
-function writeRows(date,eid,rows){ rRef('logs/'+date+'/'+MYUID+'/'+eid+'/rows').set(normRows(rows)); }
+function writeRows(date,eid,rows){ var v=normRows(rows); rRef('logs/'+date+'/'+MYUID+'/'+eid+'/rows').set(v); fanSet('log','logs/'+date+'/'+MYUID+'/'+eid+'/rows',v); }
 function setRowVal(date,eid,i,field,val){
   var rows=curRows(date,eid); if(!rows[i])rows[i]={};
   var v=parseFloat(val); if(isNaN(v))delete rows[i][field]; else rows[i][field]=v;
@@ -671,9 +716,11 @@ function exRow(date,eid,e,editable){
   div.innerHTML=head+'<div class="set-list">'+body+'</div>';
   return div;
 }
-function setMetric(date,eid,field,val){ var v=parseFloat(val); if(isNaN(v))v=null; rRef('logs/'+date+'/'+MYUID+'/'+eid+'/'+field).set(v); var e0=((MONTHLOGS[date]||{})[MYUID]||{})[eid]; if(e0&&kindOf(e0)==='cardio'&&(field==='dist'||field==='min')){ var row=document.querySelector('#dpList .ex-row[data-eid="'+eid+'"]'); if(row){ var ins=row.querySelectorAll('.mini-inp'); var d=parseFloat(ins[0].value), m=parseFloat(ins[1].value); var c=row.querySelector('.ex-calc'); if(c)c.textContent=(d&&m)?('⚡ '+(d/(m/60)).toFixed(1)+' km/h'):''; } } }
-function toggleDone(date,eid){ var cur=(((MONTHLOGS[date]||{})[MYUID]||{})[eid]||{}); var nd=!cur.done; rRef('logs/'+date+'/'+MYUID+'/'+eid+'/done').set(nd); rRef('logs/'+date+'/'+MYUID+'/'+eid+'/doneTs').set(nd?Date.now():null); if(nd)pushNotify('done',cur.name); }
-function delEntry(date,eid){ if(!confirm('이 운동을 삭제할까요?'))return; rRef('logs/'+date+'/'+MYUID+'/'+eid).remove(); }
+function setMetric(date,eid,field,val){ var v=parseFloat(val); if(isNaN(v))v=null; rRef('logs/'+date+'/'+MYUID+'/'+eid+'/'+field).set(v); fanSet('log','logs/'+date+'/'+MYUID+'/'+eid+'/'+field,v); var e0=((MONTHLOGS[date]||{})[MYUID]||{})[eid]; if(e0&&kindOf(e0)==='cardio'&&(field==='dist'||field==='min')){ var row=document.querySelector('#dpList .ex-row[data-eid="'+eid+'"]'); if(row){ var ins=row.querySelectorAll('.mini-inp'); var d=parseFloat(ins[0].value), m=parseFloat(ins[1].value); var c=row.querySelector('.ex-calc'); if(c)c.textContent=(d&&m)?('⚡ '+(d/(m/60)).toFixed(1)+' km/h'):''; } } }
+function toggleDone(date,eid){ var cur=(((MONTHLOGS[date]||{})[MYUID]||{})[eid]||{}); var nd=!cur.done; var dts=nd?Date.now():null; rRef('logs/'+date+'/'+MYUID+'/'+eid+'/done').set(nd); rRef('logs/'+date+'/'+MYUID+'/'+eid+'/doneTs').set(dts); fanSet('log','logs/'+date+'/'+MYUID+'/'+eid+'/done',nd); fanSet('log','logs/'+date+'/'+MYUID+'/'+eid+'/doneTs',dts); if(nd)pushNotify('done',cur.name); }
+function delEntry(date,eid){ var ns=shareRoomNames('log');
+  var msg = ns.length ? ('이 운동을 삭제할까요?\n함께 남기는 방('+ns.join(', ')+')에서도 같이 지워집니다.') : '이 운동을 삭제할까요?';
+  if(!confirm(msg))return; rRef('logs/'+date+'/'+MYUID+'/'+eid).remove(); fanRemove('log','logs/'+date+'/'+MYUID+'/'+eid); }
 
 /* ===== 운동 추가 / 라이브러리 ===== */
 var MYFREQ=[], FREQHIDE={};
@@ -744,7 +791,7 @@ function addEntryFromFreq(i){
   var eid=db.ref().push().key;
   var entry={name:x.name,kind:x.kind,emoji:x.emoji||null,done:false,ts:Date.now(),rows:[{}]};
   if(x.ua)entry.ua=x.ua; if(x.ub)entry.ub=x.ub;
-  rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry);
+  rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry); fanEntry(selDay,eid,entry);
   el('addBg').classList.remove('show');
 }
 function openAdd(){
@@ -754,7 +801,7 @@ function openAdd(){
   el('addBg').classList.add('show');
   loadMyFreq(renderFreqChips);
 }
-function addEntryFromLib(exId){ var x=EXLIB[exId]||{}; var kind=kindOf(x); var eid=db.ref().push().key; var entry={exId:exId,name:x.name,kind:kind,emoji:x.emoji||null,done:false,ts:Date.now()}; if(x.ua)entry.ua=x.ua; if(x.ub)entry.ub=x.ub; if(kind==='custom'&&!entry.ua)entry.ua='횟수'; rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry); rRef('exLib/'+exId).set(x); el('addBg').classList.remove('show'); }
+function addEntryFromLib(exId){ var x=EXLIB[exId]||{}; var kind=kindOf(x); var eid=db.ref().push().key; var entry={exId:exId,name:x.name,kind:kind,emoji:x.emoji||null,done:false,ts:Date.now()}; if(x.ua)entry.ua=x.ua; if(x.ub)entry.ub=x.ub; if(kind==='custom'&&!entry.ua)entry.ua='횟수'; rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry); rRef('exLib/'+exId).set(x); fanEntry(selDay,eid,entry); el('addBg').classList.remove('show'); }
 function createEx(){
   var name=((el('newExName').value)||'').trim(); if(!name){alert('운동 이름을 입력하세요');return;}
   var emoji=((el('newExEmoji').value)||'').trim();
@@ -766,7 +813,7 @@ function createEx(){
   EXLIB[exId]=def; rRef('exLib/'+exId).set(def);
   var eid=db.ref().push().key;
   var entry={exId:exId,name:name,kind:kind,emoji:emoji||null,done:false,ts:Date.now(),rows:[{}]}; if(ua)entry.ua=ua; if(ub)entry.ub=ub;
-  rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry);
+  rRef('logs/'+selDay+'/'+MYUID+'/'+eid).set(entry); fanEntry(selDay,eid,entry);
   el('addBg').classList.remove('show');
 }
 function openExLib(){ var box=el('exLibList'); box.innerHTML=''; var ks=Object.keys(EXLIB); if(!ks.length)box.innerHTML='<div class="empty-row">아직 등록된 운동이 없어요</div>'; ks.forEach(function(id){ var x=EXLIB[id]; var tpl=TPL[kindOf(x)]||TPL.strength; var row=document.createElement('div'); row.className='ex-row'; row.innerHTML='<div class="ex-body"><div class="ex-name">'+(x.emoji?x.emoji+' ':'')+esc(x.name)+'</div><div class="set-sub">'+tpl.e+' '+tpl.label+'</div></div><button class="del-x" onclick="delEx(\''+id+'\')">×</button>'; box.appendChild(row); }); el('exLibBg').classList.add('show'); }
@@ -780,8 +827,10 @@ function openInbody(){ if(!MEMBERS[MYUID]){alert('잠시 후 다시 시도해주
 function renderInbPeople(){ var box=el('inbPeople'); if(!box)return; box.innerHTML=''; PS.forEach(function(k){ var m=MEMBERS[k]||{}; var av=AVATARS[m.avatar]||AVATARS.lift; var c=document.createElement('div'); c.className='sp-chip'+(INB_PERSON===k?' on':''); c.style.color=INB_PERSON===k?av.c:'var(--txt)'; c.innerHTML='<span>'+av.e+'</span>'+esc(m.name||''); c.onclick=function(){INB_PERSON=k;renderInbPeople();renderInbody();}; box.appendChild(c); }); }
 function loadInbody(){ el('inbBody').innerHTML='<div class="empty-row">불러오는 중…</div>'; rRef('inbody').once('value').then(function(s){ INBDATA=s.val()||{}; renderInbody(); }); }
 function prefillInb(){ var mine=(INBDATA||{})[MYUID]||{}; var r=mine[(el('inbDate').value)||'']; el('inbWeight').value=(r&&r.weight!=null)?r.weight:''; el('inbSmm').value=(r&&r.smm!=null)?r.smm:''; el('inbFat').value=(r&&r.fat!=null)?r.fat:''; }
-function saveInbody(){ var date=(el('inbDate').value)||todayK(); var w=parseFloat(el('inbWeight').value), sm=parseFloat(el('inbSmm').value), fat=parseFloat(el('inbFat').value); if(isNaN(w)&&isNaN(sm)&&isNaN(fat)){alert('값을 하나 이상 입력하세요');return;} var rec={date:date,ts:Date.now()}; if(!isNaN(w))rec.weight=w; if(!isNaN(sm))rec.smm=sm; if(!isNaN(fat))rec.fat=fat; rRef('inbody/'+MYUID+'/'+date).set(rec).then(function(){ loadInbody(); }); }
-function delInbody(date){ if(!confirm(date+' 인바디 기록을 삭제할까요?'))return; rRef('inbody/'+MYUID+'/'+date).remove().then(loadInbody); }
+function saveInbody(){ var date=(el('inbDate').value)||todayK(); var w=parseFloat(el('inbWeight').value), sm=parseFloat(el('inbSmm').value), fat=parseFloat(el('inbFat').value); if(isNaN(w)&&isNaN(sm)&&isNaN(fat)){alert('값을 하나 이상 입력하세요');return;} var rec={date:date,ts:Date.now()}; if(!isNaN(w))rec.weight=w; if(!isNaN(sm))rec.smm=sm; if(!isNaN(fat))rec.fat=fat; rRef('inbody/'+MYUID+'/'+date).set(rec).then(function(){ loadInbody(); }); fanSet('inb','inbody/'+MYUID+'/'+date,rec); }
+function delInbody(date){ var ns=shareRoomNames('inb');
+  var msg = ns.length ? (date+' 인바디 기록을 삭제할까요?\n함께 남기는 방('+ns.join(', ')+')에서도 같이 지워집니다.') : (date+' 인바디 기록을 삭제할까요?');
+  if(!confirm(msg))return; rRef('inbody/'+MYUID+'/'+date).remove().then(loadInbody); fanRemove('inb','inbody/'+MYUID+'/'+date); }
 function lineChart(pts,color){
   if(!pts.length)return ''; var W=600,H=130,pad=16;
   var ys=pts.map(function(p){return p.y;}); var mn=Math.min.apply(null,ys),mx=Math.max.apply(null,ys); if(mx===mn){mx=mn+1;mn=mn-1;}
@@ -887,7 +936,65 @@ function openSettings(){
   var mb=el('setMembers'); mb.innerHTML=''; PS.forEach(function(k){ var m=MEMBERS[k]||{}; var av=AVATARS[m.avatar]||AVATARS.lift; var d=document.createElement('div'); d.style.cssText='text-align:center;width:54px'; d.innerHTML='<div style="width:36px;height:36px;border-radius:50%;background:'+av.c+'22;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto">'+av.e+'</div><div style="font-size:.68rem;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(m.name||'')+'</div>'; mb.appendChild(d); });
   el('setMyName').value=(MEMBERS[MYUID]||{}).name||'';
   renderAvaGrid('setAvatarGrid',(MEMBERS[MYUID]||{}).avatar,function(av){ rRef('members/'+MYUID+'/avatar').set(av); });
+  renderShareRooms();
   updateNotiToggle(); el('settingsBg').classList.add('show');
+}
+function renderShareRooms(){
+  var box=el('shareRoomList'); if(!box)return;
+  var others=otherRoomIds();
+  if(!others.length){ box.innerHTML='<div class="sh-empty">다른 방에 참여하면 여기에서 켤 수 있어요.</div>'; return; }
+  box.innerHTML='';
+  others.forEach(function(rid){
+    var info=MY_ROOMS_INFO[rid]||{}, cfg=shareCfg(rid);
+    var d=document.createElement('div'); d.className='sh-room';
+    d.innerHTML='<div class="nm">🏋️ '+esc(info.name||'방')+'</div><div class="sh-opts">'+
+      '<button class="sh-opt'+(cfg.log?' on':'')+'" data-k="log">'+(cfg.log?'☑':'☐')+' 운동 기록</button>'+
+      '<button class="sh-opt'+(cfg.inb?' on':'')+'" data-k="inb">'+(cfg.inb?'☑':'☐')+' 인바디</button></div>';
+    [].forEach.call(d.querySelectorAll('.sh-opt'),function(b){
+      b.onclick=function(){ toggleShare(rid,b.dataset.k); };
+    });
+    box.appendChild(d);
+  });
+}
+function toggleShare(rid,kind){
+  var cfg=shareCfg(rid), on=!cfg[kind], info=MY_ROOMS_INFO[rid]||{};
+  var upd={}; upd[kind]=on;
+  db.ref('userRooms/'+MYUID+'/'+rid+'/share/'+kind).set(on).then(function(){
+    MY_ROOMS_INFO[rid]=MY_ROOMS_INFO[rid]||{};
+    MY_ROOMS_INFO[rid].share=MY_ROOMS_INFO[rid].share||{};
+    MY_ROOMS_INFO[rid].share[kind]=on;
+    renderShareRooms();
+    if(on) askBackfill(rid,kind,info.name||'방');
+  }).catch(function(e){ alert('설정 저장 실패: '+(e&&e.message||'')); });
+}
+/* 켜기 전에 쌓인 기록은 자동으로 따라가지 않으므로, 켜는 순간 한 번 물어보고 채워 넣는다 */
+function askBackfill(rid,kind,rname){
+  var what = kind==='inb' ? '인바디 기록' : '운동 기록';
+  if(!confirm('지금까지의 내 '+what+'도 「'+rname+'」에 가져올까요?\n(그 방에 있던 다른 기록은 그대로 두고 합칩니다)')) return;
+  if(kind==='inb') backfillInbody(rid,rname); else backfillLogs(rid,rname);
+}
+function backfillLogs(rid,rname){
+  rRef('logs').once('value').then(function(s){
+    var all=s.val()||{}, n=0, defs={};
+    Object.keys(all).forEach(function(date){
+      var mine=(all[date]||{})[MYUID]; if(!mine)return;
+      Object.keys(mine).forEach(function(eid){
+        var e=mine[eid]; if(!e)return;
+        db.ref('rooms/'+rid+'/logs/'+date+'/'+MYUID+'/'+eid).set(e).catch(function(){});
+        if(e.exId&&EXLIB[e.exId])defs[e.exId]=EXLIB[e.exId];
+        n++;
+      });
+    });
+    Object.keys(defs).forEach(function(x){ db.ref('rooms/'+rid+'/exLib/'+x).set(defs[x]).catch(function(){}); });
+    alert('운동 기록 '+n+'개를 「'+rname+'」에 넣었어요.');
+  }).catch(function(e){ alert('가져오기 실패: '+(e&&e.message||'')); });
+}
+function backfillInbody(rid,rname){
+  rRef('inbody/'+MYUID).once('value').then(function(s){
+    var all=s.val()||{}, ks=Object.keys(all);
+    ks.forEach(function(date){ db.ref('rooms/'+rid+'/inbody/'+MYUID+'/'+date).set(all[date]).catch(function(){}); });
+    alert('인바디 기록 '+ks.length+'개를 「'+rname+'」에 넣었어요.');
+  }).catch(function(e){ alert('가져오기 실패: '+(e&&e.message||'')); });
 }
 function renderAvaGrid(gid,cur,onPick){ var g=el(gid); if(!g)return; g.innerHTML=''; AVKEYS.forEach(function(k){ var a=AVATARS[k]; var d=document.createElement('div'); d.className='ava-opt'+(cur===k?' sel':''); d.style.background=a.c+'22'; d.textContent=a.e; d.title=a.n; d.onclick=function(){ [].forEach.call(g.children,function(c){c.classList.remove('sel');}); d.classList.add('sel'); onPick(k); }; g.appendChild(d); }); }
 function updateNotiToggle(){ var hint=el('setNotiHint'); if(hint)hint.textContent='푸시 알림은 곧 추가돼요. 지금은 상단 🔔 에서 소식을 확인하세요.'; }
