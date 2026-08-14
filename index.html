@@ -378,8 +378,7 @@ header p{margin:3px 0 0;color:var(--sub);font-size:.85rem;font-weight:700}
       <div id="shareRoomList"></div>
     </div>
     <div class="set-sec">
-      <div class="set-row"><div><div class="set-label">🔔 푸시 알림</div><div class="set-sub">친구가 운동하면 폰으로 알림</div></div><button class="toggle" id="notiToggle"><span class="knob"></span></button></div>
-      <div class="set-sub" id="setNotiHint" style="margin-top:6px"></div>
+      <div class="set-row"><div><div class="set-label">🔔 소식</div><div class="set-sub">같은 방 친구가 운동을 완료하면 상단 🔔 에 쌓여요</div></div></div>
     </div>
     <div class="set-sec">
       <button class="set-action" id="setLobbyBtn">🏋️ 대기실 가기</button>
@@ -525,7 +524,8 @@ function autoJoin(code){
   }).catch(function(e){ if(ov)ov.style.display='none'; showHub(true); });
 }
 auth.onAuthStateChanged(function(u){
-  if(window.__hideAuthSplash) window.__hideAuthSplash();
+  if(!u && window.__ourlogTrySSO){ window.__ourlogTrySSO().then(function(ok){ if(!ok && window.__hideAuthSplash) window.__hideAuthSplash(); }); }
+  if(u && window.__hideAuthSplash) window.__hideAuthSplash();
   if(u){ MYUID=u.uid; showGate(false); var dn=el('myDisplayName'); if(dn&&!dn.value)dn.value=((u.displayName||u.email||'')+'').slice(0,12);
     loadMyRooms();
     var pj=localStorage.getItem('hl_pendingJoin'); if(pj){ localStorage.removeItem('hl_pendingJoin'); autoJoin(pj); return; }
@@ -542,8 +542,10 @@ function otherRoomIds(){ return (MY_ROOMS||[]).filter(function(r){return r&&r!==
    설정은 userRooms/{내uid}/{방id}/share = {log:bool, inb:bool} 에 저장.
    기본값 — 인바디는 켬(어느 방에서든 같은 내 몸 숫자라서), 운동은 끔. */
 function shareCfg(rid){
+  /* 둘 다 기본은 꺼짐. 켠 방에만 기록이 따라간다.
+     (예전에는 인바디가 기본 켜짐이라 새 방을 만들면 기존 방으로 의도치 않게 퍼졌다) */
   var c=((MY_ROOMS_INFO[rid]||{}).share)||{};
-  return { log: c.log===true, inb: c.inb!==false };
+  return { log: c.log===true, inb: c.inb===true };
 }
 function shareRooms(kind){
   return (MY_ROOMS||[]).filter(function(rid){
@@ -1021,7 +1023,7 @@ function backfillInbody(rid,rname){
   }).catch(function(e){ alert('가져오기 실패: '+(e&&e.message||'')); });
 }
 function renderAvaGrid(gid,cur,onPick){ var g=el(gid); if(!g)return; g.innerHTML=''; AVKEYS.forEach(function(k){ var a=AVATARS[k]; var d=document.createElement('div'); d.className='ava-opt'+(cur===k?' sel':''); d.style.background=a.c+'22'; d.textContent=a.e; d.title=a.n; d.onclick=function(){ [].forEach.call(g.children,function(c){c.classList.remove('sel');}); d.classList.add('sel'); onPick(k); }; g.appendChild(d); }); }
-function updateNotiToggle(){ var hint=el('setNotiHint'); if(hint)hint.textContent='푸시 알림은 곧 추가돼요. 지금은 상단 🔔 에서 소식을 확인하세요.'; }
+function updateNotiToggle(){ /* 알림 토글은 제거됨 — 소식은 상단 🔔 에서 확인 */ }
 
 /* ===== 버튼 배선 ===== */
 el('googleLoginBtn').onclick=function(){ var pr=new firebase.auth.GoogleAuthProvider(); var msg=el('loginMsg'); if(msg)msg.textContent='로그인 창을 여는 중…'; auth.signInWithPopup(pr).then(function(){if(msg)msg.textContent='';}).catch(function(e){ var code=(e&&e.code)||''; if(code.indexOf('popup')>-1){try{auth.signInWithRedirect(pr);}catch(e2){}} else if(code.indexOf('cancel')>-1||code.indexOf('closed')>-1){if(msg)msg.textContent='';} else{if(msg)msg.textContent='로그인 실패: '+((e&&e.message)||code);} }); };
@@ -1044,7 +1046,7 @@ el('setLobbyBtn').onclick=function(){ localStorage.removeItem('hl_room'); locati
 el('switchroom').onclick=function(){ localStorage.removeItem('hl_room'); location.reload(); };
 el('setLogoutBtn').onclick=function(){ if(confirm('로그아웃할까요?')){ localStorage.removeItem('hl_room'); auth.signOut().then(function(){location.reload();}); } };
 el('setLeaveBtn').onclick=function(){ if(!confirm('이 방에서 나갈까요?'))return; var up={}; up['rooms/'+ROOM_ID+'/members/'+MYUID]=null; up['userRooms/'+MYUID+'/'+ROOM_ID]=null; db.ref().update(up).then(function(){ localStorage.removeItem('hl_room'); location.reload(); }); };
-el('notiToggle').onclick=function(){ alert('푸시 알림은 곧 추가할게요! 지금은 상단 🔔 에서 소식을 볼 수 있어요.'); };
+/* notiToggle 제거 */
 el('notifBtn').onclick=function(e){ e.stopPropagation(); var p=el('notifPanel'); var show=p.style.display!=='block'; p.style.display=show?'block':'none'; if(show){ NOTIF_LAST=Date.now(); localStorage.setItem('hl_notifLast',String(NOTIF_LAST)); renderNotifs(); } };
 document.addEventListener('click',function(e){ var p=el('notifPanel'); var b=el('notifBtn'); if(p&&p.style.display==='block'&&!p.contains(e.target)&&!b.contains(e.target)){p.style.display='none';} });
 </script>
@@ -1068,6 +1070,31 @@ document.addEventListener('click',function(e){ var p=el('notifPanel'); var b=el(
   }catch(e){}}
   if(document.readyState!=='loading') mount(); else document.addEventListener('DOMContentLoaded',mount);
   setInterval(mount,1500);
+})();
+</script>
+<!-- ===== ourLog: 런처에서 받은 로그인 이어받기 ===== -->
+<script>
+/* 런처(ourLog 첫 화면)에서 구글 로그인을 하면 ID 토큰이 잠깐 저장된다.
+   이 앱이 아직 로그인 전이면 그 토큰으로 조용히 로그인해서
+   앱마다 다시 로그인하는 번거로움을 없앤다. 실패해도 원래 로그인 화면이 그대로 뜬다. */
+(function(){
+  var KEY='ourlog_gidt', tried=false;
+  function token(){
+    try{ var v=JSON.parse(localStorage.getItem(KEY)||'null');
+      if(v && v.exp>Date.now()) return v.t; }catch(e){}
+    return null;
+  }
+  window.__ourlogTrySSO=function(){
+    if(tried) return Promise.resolve(false);
+    tried=true;
+    var t=token(); if(!t) return Promise.resolve(false);
+    try{
+      var cred=firebase.auth.GoogleAuthProvider.credential(t);
+      return firebase.auth().signInWithCredential(cred)
+        .then(function(){ return true; })
+        .catch(function(e){ if(window.console) console.warn('SSO 실패', e && e.code); return false; });
+    }catch(e){ return Promise.resolve(false); }
+  };
 })();
 </script>
 </body>
