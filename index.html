@@ -618,10 +618,26 @@ function attachMonthLogs(){
   var pre=CY+'-'+pad(CM+1); _logRef=rRef('logs').orderByKey().startAt(pre+'-01').endAt(pre+'-31');
   _logCb=_logRef.on('value',function(s){ MONTHLOGS={}; s.forEach(function(c){MONTHLOGS[c.key]=c.val();}); renderCal(); renderMembers(); scheduleRenderDay(); });
 }
+/* 없어졌거나 권한이 없는 방을 기억하고 있으면 지우고 대기실로 */
+function dropDeadRoom(rid,msg){
+  try{ if(localStorage.getItem('hl_room')===rid) localStorage.removeItem('hl_room'); }catch(e){}
+  ROOM_ID=null;
+  try{ db.ref('userRooms/'+MYUID+'/'+rid).remove(); }catch(e){}
+  var h=el('hubMsg'); if(h) h.textContent=(msg||'방을 열 수 없어요')+' · 목록에서 다시 골라주세요';
+  try{ loadMyRooms(); }catch(e){}
+  showGate(false); showHub(true);
+}
 function bootRoom(rid){
   ROOM_ID=rid; VIEW_UID=MYUID; localStorage.setItem('hl_room',rid); showGate(false); showHub(false);
   rRef('meta').once('value').then(function(s){ ROOM_META=s.val()||{}; el('roomTitle').textContent=ROOM_META.name||'운동방'; });
-  rRef('members').on('value',function(s){ MEMBERS=s.val()||{}; el('ov').style.display='none'; if(!MEMBERS[MYUID]){ localStorage.removeItem('hl_room'); ROOM_ID=null; loadMyRooms(); showHub(true); return; } PS=Object.keys(MEMBERS); renderMembers(); renderDay(); });
+  rRef('members').on('value',function(s){
+    MEMBERS=s.val()||{}; el('ov').style.display='none';
+    if(!MEMBERS[MYUID]){ dropDeadRoom(rid,'이 방에서 나왔어요'); return; }
+    PS=Object.keys(MEMBERS); renderMembers(); renderDay();
+  }, function(err){
+    /* 방이 지워졌거나 내보내진 경우 — 계속 붙잡고 있으면 화면이 멈춘다 */
+    dropDeadRoom(rid,'이 방에 들어갈 수 없어요');
+  });
   rRef('exLib').on('value',function(s){ EXLIB=s.val()||{}; });
   db.ref('userRooms/'+MYUID).on('value',function(s){ var v=s.val()||{}; MY_ROOMS=Object.keys(v); MY_ROOMS_INFO=v; });
   attachMonthLogs(); startNotifListener();
