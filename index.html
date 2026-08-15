@@ -1061,7 +1061,23 @@ el('setSaveName').onclick=function(){ var nm=((el('setMyName').value)||'').trim(
 el('setLobbyBtn').onclick=function(){ localStorage.removeItem('hl_room'); location.reload(); };
 el('switchroom').onclick=function(){ localStorage.removeItem('hl_room'); location.reload(); };
 el('setLogoutBtn').onclick=function(){ if(confirm('로그아웃할까요?')){ localStorage.removeItem('hl_room'); auth.signOut().then(function(){location.reload();}); } };
-el('setLeaveBtn').onclick=function(){ if(!confirm('이 방에서 나갈까요?'))return; var up={}; up['rooms/'+ROOM_ID+'/members/'+MYUID]=null; up['userRooms/'+MYUID+'/'+ROOM_ID]=null; db.ref().update(up).then(function(){ localStorage.removeItem('hl_room'); location.reload(); }); };
+el('setLeaveBtn').onclick=function(){
+  /* 마지막 한 명이 나가면 아무도 못 여는 방이 남는다. 그럴 땐 방과 초대 코드까지 정리한다. */
+  var others=Object.keys(MEMBERS||{}).filter(function(k){ return k!==MYUID; });
+  var last=others.length===0, rid=ROOM_ID, code=(ROOM_META&&ROOM_META.code)||'';
+  var msg=last ? '이 방에서 나갈까요?\n마지막 멤버라서 방과 기록이 모두 사라져요.' : '이 방에서 나갈까요?';
+  if(!confirm(msg))return;
+  var done=function(){ localStorage.removeItem('hl_room'); location.reload(); };
+  if(last){
+    db.ref('rooms/'+rid).remove()
+      .then(function(){ return code? db.ref('roomCodes/'+code).remove().catch(function(){}) : null; })
+      .then(function(){ return db.ref('userRooms/'+MYUID+'/'+rid).remove(); })
+      .then(done).catch(function(e){ alert('나가지 못했어요: '+(e&&e.message||'')); });
+  } else {
+    var up={}; up['rooms/'+rid+'/members/'+MYUID]=null; up['userRooms/'+MYUID+'/'+rid]=null;
+    db.ref().update(up).then(done).catch(function(e){ alert('나가지 못했어요: '+(e&&e.message||'')); });
+  }
+};
 /* notiToggle 제거 */
 el('notifBtn').onclick=function(e){ e.stopPropagation(); var p=el('notifPanel'); var show=p.style.display!=='block'; p.style.display=show?'block':'none'; if(show){ NOTIF_LAST=Date.now(); localStorage.setItem('hl_notifLast',String(NOTIF_LAST)); renderNotifs(); } };
 document.addEventListener('click',function(e){ var p=el('notifPanel'); var b=el('notifBtn'); if(p&&p.style.display==='block'&&!p.contains(e.target)&&!b.contains(e.target)){p.style.display='none';} });
